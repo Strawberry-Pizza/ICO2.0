@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "../token/DAICO_ERC20.sol";
 import "../ownership/Ownable.sol";
@@ -13,7 +13,7 @@ contract Refund is Ownable {
         token = DAICO_ERC20(_token);
     }
     /* EVENTS */
-    event Refund(address indexed account, uint256 refunded_wei_amount, uint256 token_amount, uint256 rate, bool success);
+    event Refunding(address indexed account, uint256 refunded_wei_amount, uint256 token_amount, uint256 rate, bool success);
     /* VIEW FUNCTION */
     function estimateRefundETH(uint256 token_amount, address account) public view returns(uint256) {
         uint256 _rate = SafeMath.safeDiv(token_amount,token.getTotalSupply());
@@ -28,10 +28,10 @@ contract Refund is Ownable {
         uint256 _refundedWeiAmount = SafeMath.safeMul(_rate, token.getBeneficiaryWeiAmount());
         //get refunds from contract account
         if(!msg.sender.send(_refundedWeiAmount)) {
-            Refund(account, _refundedWeiAmount, token_amount, _rate, false);
-            throw;
+            emit Refunding(account, _refundedWeiAmount, token_amount, _rate, false);
+            revert();
         }
-        Refund(account, _refundedWeiAmount, token_amount, _rate, true);
+        emit Refunding(account, _refundedWeiAmount, token_amount, _rate, true);
         return true;
     }
 }

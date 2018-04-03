@@ -1,10 +1,10 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 
 contract Ownable {
   address public owner;
   //address[] public developers; //contains owner
-  enum DEV_LEVEL {NONE, DEV, OWNER};
+  enum DEV_LEVEL {NONE, DEV, OWNER}
   mapping(address => DEV_LEVEL) developerLevel;
 
 
@@ -16,7 +16,7 @@ contract Ownable {
   /* VIEW FUNCTION & CONSTRUCTOR */
   function Ownable() public {
     require(msg.sender != 0x0);
-    CreateOwnership(owner);
+    emit CreateOwnership(owner);
     owner = msg.sender;
     developerLevel[owner] = DEV_LEVEL.OWNER;
   }
@@ -43,7 +43,7 @@ contract Ownable {
   /*FUNCTION*/
   function transferOwnership(address newOwner) public onlyOwner {
     require(isDeveloper(newOwner));
-    OwnershipTransferred(owner, newOwner);
+    emit OwnershipTransferred(owner, newOwner);
     developerLevel[newOwner] = DEV_LEVEL.OWNER;
     developerLevel[owner] = DEV_LEVEL.NONE;
     owner = newOwner;
@@ -52,7 +52,7 @@ contract Ownable {
   function enroll_developer(address dev_addr) public onlyOwner {
       require(dev_addr != 0x0);
       require(!isDeveloper(dev_addr));
-      EnrollDeveloper(msg.sender, dev_addr);
+      emit EnrollDeveloper(msg.sender, dev_addr);
       developerLevel[dev_addr] = DEV_LEVEL.DEV;
   }
 
@@ -60,7 +60,7 @@ contract Ownable {
       require(dev_addr != 0x0);
       require(dev_addr != owner); // must not be self-destruct
       require(isDeveloper(dev_addr));
-      DeleteDeveloper(msg.sender, dev_addr);
+      emit DeleteDeveloper(msg.sender, dev_addr);
       developerLevel[dev_addr] = DEV_LEVEL.NONE;
   }
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "../ownership/Ownable.sol";
 import "../token/DAICO_ERC20.sol";
@@ -17,7 +17,7 @@ contract Voting is Ownable, DAICO_ERC20 {
     uint256 public total_party = 0;
     uint256 public agree_party = 0;
     uint256 public disagree_party = 0;
-    enum VOTESTATE {NONE, AGREE, DISAGREE};
+    enum VOTESTATE {NONE, AGREE, DISAGREE}
     mapping(address=>VOTESTATE) public party_list;
     mapping(address=>uint256) public revoke_list; //account=>revoke count
 
@@ -42,7 +42,7 @@ contract Voting is Ownable, DAICO_ERC20 {
         isInitialized = true;
         startTime = now;
         endTime = now + alpha; // you should change the alpha into proper value.
-        InitializeVote(address(this), votingName, startTime, endTime);
+        emit InitializeVote(address(this), votingName, startTime, endTime);
         return true;
     }
     function vote() public returns(bool agree) { 

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "../token/DAICO_ERC20.sol";
 import "../lib/SafeMath.sol";
@@ -25,7 +25,7 @@ contract Crowdsale {
   // how many token units a buyer gets per wei
   uint256 public rate;
 
-  /**
+  /*
    * event for token purchase logging
    * @param purchaser who paid for the tokens
    * @param beneficiary who got the tokens
@@ -71,9 +71,9 @@ contract Crowdsale {
     // update state
     currentAmount = SafeMath.safeAdd(currentAmount, weiAmount); //ether
     bool send_token_success = token.transfer(buyer, token_amount);
-    TokenPurchase(buyer, weiAmount, token_amount, send_token_success);
+    emit TokenPurchase(buyer, weiAmount, token_amount, send_token_success);
     bool get_ether_success = forwardFunds(weiAmount);
-    StoreEtherToWallet(msg.sender, beneficiary, weiAmount, token_amount, get_ether_success);
+    emit StoreEtherToWallet(msg.sender, beneficiary, weiAmount, token_amount, get_ether_success);
   }
 
   // @return true if crowdsale event has ended

@@ -3,7 +3,7 @@
  * After DAICO, funded ether follows this contract.
  */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "../token/DAICO_ERC20.sol";
 import "../crowdsale/Crowdsale.sol";

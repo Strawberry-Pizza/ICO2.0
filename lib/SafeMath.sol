@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 /**
  * Math operations with safety checks
@@ -23,8 +23,5 @@ library SafeMath {
     uint256 c = a + b;
     assert(c>=a && c>=b);
     return c;
-  }
-  function assert(bool assertion) internal pure {
-    require(!assertion);
   }
 }
