@@ -5,11 +5,11 @@
 
 pragma solidity ^0.4.21;
 
-import "../token/DAICO_ERC20.sol";
+import "../token/BaseToken.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../ownership/Ownable.sol";
 
-contract Fund is Ownable, DAICO_ERC20, Crowdsale {
+contract Fund is Ownable, BaseToken, Crowdsale {
 
     // totalEther = [contract_account].balance
 

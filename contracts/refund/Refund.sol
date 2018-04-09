@@ -1,16 +1,21 @@
 pragma solidity ^0.4.21;
 
-import "../token/DAICO_ERC20.sol";
+import "../token/BaseToken.sol";
 import "../ownership/Ownable.sol";
 import "../lib/SafeMath.sol";
 
 contract Refund is Ownable {
     using SafeMath for uint256;
 
-    DAICO_ERC20 public token;
+    BaseToken public token;
+    uint public startTime;
+    uint public endTime;
+    uint public constant term = 4 weeks;
     /* CONSTRUCTOR */
     function Refund(address _token) public onlyDevelopers {
-        token = DAICO_ERC20(_token);
+        token = BaseToken(_token);
+        startTime = now;
+        endTime = now + term;
     }
     /* EVENTS */
     event Refunding(address indexed account, uint256 refunded_wei_amount, uint256 token_amount, uint256 rate, bool success);
@@ -33,6 +38,14 @@ contract Refund is Ownable {
         }
         emit Refunding(account, _refundedWeiAmount, token_amount, _rate, true);
         return true;
+    }
+
+    function renewal() public {
+        //set 0
+
+        startTime = now;
+        endTime = now + term;
+
     }
 }
 

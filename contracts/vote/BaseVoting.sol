@@ -1,11 +1,11 @@
 pragma solidity ^0.4.21;
 
 import "../ownership/Ownable.sol";
-import "../token/DAICO_ERC20.sol";
+import "../token/BaseToken.sol";
 import "../token/Fund.sol";
 import "../lib/SafeMath.sol";
 
-contract Voting is Ownable, DAICO_ERC20 {
+contract BaseVoting is Ownable, BaseToken {
     using SafeMath for uint256;
 
     string public votingName;
@@ -17,6 +17,7 @@ contract Voting is Ownable, DAICO_ERC20 {
     uint256 public total_party = 0;
     uint256 public agree_party = 0;
     uint256 public disagree_party = 0;
+
     enum VOTESTATE {NONE, AGREE, DISAGREE}
     mapping(address=>VOTESTATE) public party_list;
     mapping(address=>uint256) public revoke_list; //account=>revoke count
@@ -24,7 +25,7 @@ contract Voting is Ownable, DAICO_ERC20 {
     /* EVENTS */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
     /* CONSTRUCTOR */
-    function Voting(string _votingName) public {
+    function BaseVoting(string _votingName) public {
         votingName = _votingName;
     }
     /*VIEW FUNCTION*/
@@ -37,7 +38,7 @@ contract Voting is Ownable, DAICO_ERC20 {
     }
 
     /*FUNCTION*/
-    function initiative() public returns(bool) {
+    function initialize() public returns(bool) {
         require(!isInitialized);
         isInitialized = true;
         startTime = now;
@@ -47,9 +48,8 @@ contract Voting is Ownable, DAICO_ERC20 {
     }
     function vote() public returns(bool agree) { 
         require(msg.sender != 0x0);
-        require(party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
-        uint256 memory votePower = 1;
-        if (revoke_list[msg.sender] > 0) { votePower = 0.5**revoke_list[msg.sender]; }
+        require(!party_list[msg.sender]||party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
+        uint votePower = balanceOf[msg.sender];
         if(agree) {
             party_list[msg.sender] = VOTESTATE.AGREE;
             agree_party += votePower;
@@ -89,16 +89,6 @@ contract Voting is Ownable, DAICO_ERC20 {
         selfdestruct(address(this));
         return true;
     }
-}
-
-contract TapVoting is Voting {
-//
-    function TapVoting(string _votingName) Voting(_votingName) {} 
-}
-
-contract BufferVoting is Voting {
-//
-    function BufferVoting(string _votingName) Voting(_votingName) {} 
 }
 
 

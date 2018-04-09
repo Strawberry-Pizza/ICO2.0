@@ -2,49 +2,28 @@ pragma solidity ^0.4.21;
 
 import "../lib/SafeMath.sol";
 import "../ownership/Ownable.sol";
+import "./IERC20.sol";
 
-/**
- * @title ERC20 interface
- * @dev see https://github.com/ethereum/EIPs/issues/20
- */
-contract ERC20 {
-  function getTotalSupply() public view returns (uint256);
-  function getBalanceOf(address who) public view returns (uint256);
-  function getBeneficiaryWeiAmount() public view returns (uint256);
-  function transfer(address _to, uint256 _value) public returns (bool);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
-  function allowance(address owner, address spender) public view returns (uint256);
-  function approve(address spender, uint256 value) public returns (bool);
-}
-
-contract DAICO_ERC20 is Ownable, ERC20 {
+contract BaseToken is Ownable, IERC20 {
     using SafeMath for uint256;
 
-    string public name; //
-    string public symbol; //
-    uint8 public decimals; // 18
-    uint256 public totalSupply; // 5,000,000,000(5 billion)
     address public beneficiary;
     address public owner;
     /* This creates an array with all balances */
-    mapping (address => uint256) public balanceOf;
     mapping (address => uint256) public freezeOf;
     mapping (address => mapping (address => uint256)) public allowance;
 
     /* EVENTS */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approve(address indexed from, address indexed to, uint256 value);
     event Burn(address indexed from, uint256 value);
     event Freeze(address indexed from, uint256 value);
     event Unfreeze(address indexed from, uint256 value);
     /* CONSTRUCTOR */
-    function DAICO_ERC20 (
+    function BaseToken (
         uint256 initialSupply,
         uint8 decimals_,
         string name_,
         string symbol_
         ) public {
-        balanceOf[msg.sender] = SafeMath.safeDiv(initialSupply, 5);              // Give the creator all initial tokens
         totalSupply = initialSupply;                        // Update total supply
         name = name_;                                   // Set the name for display purposes
         symbol = symbol_;                               // Set the symbol for display purposes
@@ -52,15 +31,6 @@ contract DAICO_ERC20 is Ownable, ERC20 {
         owner = msg.sender;
     }
     /* OPERATIONS */
-    function getTotalSupply() public view returns (uint256 supply) {
-        return totalSupply;
-    }
-    function getBalanceOf(address who) public view returns (uint256 balance) {
-        return balanceOf[who];
-    }
-    function getBeneficiaryWeiAmount() public view returns (uint256 remainingWei){
-        return beneficiary.balance; 
-    }
     function transfer(address _to, uint256 _value) public returns (bool success) {
         require(_to != 0x0);                               // Prevent transfer to 0x0 address. Use burn() instead
         require(_value > 0);
