@@ -19,7 +19,7 @@ contract Crowdsale {
     BaseToken public token; //address
     uint256 public startTime;
     uint256 public endTime;
-    address public beneficiary; // ether collecting address for crawdsale
+    address public beneficiary; // ether bank, it should be Fund.sol's Contract address
     uint256 public fundingGoal;
     uint256 public currentAmount;
 
