@@ -8,14 +8,9 @@ contract Refund is Ownable {
     using SafeMath for uint256;
 
     BaseToken public token;
-    uint public startTime;
-    uint public endTime;
-    uint public constant term = 4 weeks;
     /* CONSTRUCTOR */
     function Refund(address _token) public onlyDevelopers {
         token = BaseToken(_token);
-        startTime = now;
-        endTime = now + term;
     }
     /* EVENTS */
     event Refunding(address indexed account, uint256 refunded_wei_amount, uint256 token_amount, uint256 rate, bool success);
@@ -38,14 +33,6 @@ contract Refund is Ownable {
         }
         emit Refunding(account, _refundedWeiAmount, token_amount, _rate, true);
         return true;
-    }
-
-    function renewal() public {
-        //set 0
-
-        startTime = now;
-        endTime = now + term;
-
     }
 }
 

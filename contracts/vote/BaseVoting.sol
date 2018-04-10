@@ -10,7 +10,8 @@ contract BaseVoting is Ownable, BaseToken {
 
     string public votingName;
     bool public isInitialized = false;
-    bool public isFinalized = false;
+    bool public isFinalized = true;
+    bool public isOpened = false;
     uint256 public startTime;
     uint256 public endTime;
     
@@ -30,7 +31,7 @@ contract BaseVoting is Ownable, BaseToken {
     }
     /*VIEW FUNCTION*/
     function isActivated() public view returns(bool) {
-        return (isInitialized && !isFinalized);
+        return (isOpened);
     }
     function getInfo() public view returns(struct); //TODO
     function getName() public view returns(string){
@@ -38,14 +39,40 @@ contract BaseVoting is Ownable, BaseToken {
     }
 
     /*FUNCTION*/
-    function initialize() public returns(bool) {
-        require(!isInitialized);
-        isInitialized = true;
+
+    //initialize -> open -> close -> finalize
+    function initialize(uint term) public returns(bool) {
+        require(!isInitialized && isFinalized);
         startTime = now;
-        endTime = now + alpha; // you should change the alpha into proper value.
+        endTime = now + term; // you should change the alpha into proper value.
         emit InitializeVote(address(this), votingName, startTime, endTime);
+        isInitialized = true;
+        isFinalized = false;
         return true;
     }
+
+    function openVoting() public returns(bool){
+        require(!isOpened && isInitialized);
+
+        isOpened = true;
+        isInitialized = false;
+        return true;
+    }
+
+    function closeVoting() public returns(bool){
+        require(isOpened);
+
+        isOpened = false;
+        return true;
+    }
+
+    function finalize() public returns(bool){
+        require(!isFinalized && !isOpened);
+
+        isFinalized = true;
+        return true;
+    }
+
     function vote() public returns(bool agree) { 
         require(msg.sender != 0x0);
         require(!party_list[msg.sender]||party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
@@ -82,7 +109,6 @@ contract BaseVoting is Ownable, BaseToken {
         return true;
     }
 
-    function finalize() public returns(bool);
     function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
     function destroy() external onlyDevelopers returns(bool){
         require(isFinalized);
