@@ -1,16 +1,16 @@
 pragma solidity ^0.4.21;
 
-import "../token/BaseToken.sol";
+import "../token/ERC20.sol";
 import "../ownership/Ownable.sol";
 import "../lib/SafeMath.sol";
 
 contract Refund is Ownable {
     using SafeMath for uint256;
 
-    BaseToken public token;
+    ERC20 public token;
     /* CONSTRUCTOR */
     function Refund(address _token) public onlyDevelopers {
-        token = BaseToken(_token);
+        token = ERC20(_token);
     }
     /* EVENTS */
     event Refunding(address indexed account, uint256 refunded_wei_amount, uint256 token_amount, uint256 rate, bool success);

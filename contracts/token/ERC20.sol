@@ -4,7 +4,7 @@ import "../lib/SafeMath.sol";
 import "../ownership/Ownable.sol";
 import "./IERC20.sol";
 
-contract BaseToken is Ownable, IERC20 {
+contract ERC20 is Ownable, IERC20 {
     using SafeMath for uint256;
 
     string public name;
@@ -23,7 +23,7 @@ contract BaseToken is Ownable, IERC20 {
     event Freeze(address indexed from, uint256 value);
     event Unfreeze(address indexed from, uint256 value);
     /* CONSTRUCTOR */
-    function BaseToken (
+    function ERC20 (
         uint256 initialSupply,
         uint8 decimals_,
         string name_,

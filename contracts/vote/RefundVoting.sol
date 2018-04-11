@@ -11,4 +11,5 @@ contract RefundVoting is BaseVoting {
     	super.initialize(TERM); //fixed term
     }
     
+    //TODO: we should add(override) some meaningful function
 }

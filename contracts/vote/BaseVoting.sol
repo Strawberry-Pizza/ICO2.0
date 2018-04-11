@@ -1,11 +1,11 @@
 pragma solidity ^0.4.21;
 
 import "../ownership/Ownable.sol";
-import "../token/BaseToken.sol";
+import "../token/ERC20.sol";
 import "../token/Fund.sol";
 import "../lib/SafeMath.sol";
 
-contract BaseVoting is Ownable, BaseToken {
+contract BaseVoting is Ownable, ERC20 {
     using SafeMath for uint256;
 
     string public votingName;

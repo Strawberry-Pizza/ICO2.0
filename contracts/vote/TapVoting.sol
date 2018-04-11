@@ -9,12 +9,10 @@ contract TapVoting is BaseVoting {
 
     function TapVoting(string _votingName) BaseVoting(_votingName) {
     }
-    //@Override
     function initialize(uint256 term) public returns(bool){
     	require(term > MIN_TERM && MAX_TERM > term);
     	super.initialize(term);
     }
-
     function openVoting() public returns(bool){
     	super.openVoting();
     }
@@ -22,5 +20,9 @@ contract TapVoting is BaseVoting {
     function closeVoting() public returns(bool){
     	super.closeVoting();
     }
+
+    //TODO: we should add(override) some meaningful function
+
+
 
 }

@@ -1,6 +1,7 @@
 pragma solidity ^0.4.21;
 
-import "../token/BaseToken.sol";
+import "../token/ERC20.sol";
+import "../token/IERC20.sol";
 import "../lib/SafeMath.sol";
 import "../ownership/Ownable.sol";
 /**
@@ -13,13 +14,13 @@ import "../ownership/Ownable.sol";
  * minted as contributions arrive, note that the crowdsale contract
  * must be owner of the token in order to be able to mint it.
  */
-contract Crowdsale {
+contract Crowdsale is Ownable {
     using SafeMath for uint256;
     // The token being sold
-    BaseToken public token; //address
+    IERC20 public token; //address
     uint256 public startTime;
     uint256 public endTime;
-    address public beneficiary; // ether bank, it should be Fund.sol's Contract address
+    address public fund; // ether bank, it should be Fund.sol's Contract address
     uint256 public fundingGoal;
     uint256 public currentAmount;
 
@@ -29,7 +30,7 @@ contract Crowdsale {
     /*
      * event for token purchase logging
      * @param purchaser who paid for the tokens
-     * @param beneficiary who got the tokens
+     * @param fund who got the tokens
      * @param value weis paid for purchase
      * @param amount amount of tokens purchased
      */
@@ -37,18 +38,19 @@ contract Crowdsale {
     event StoreEtherToWallet(address indexed purchaser, address indexed wallet_address, uint256 wei_amount, uint256 token_amount, bool success);
     //event GoalReached(uint256 endtime, uint256 total_amount);
 
-    function Crowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _beneficiary, address _token) public {
+    function Crowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _fund, address _token) public onlyOwner {
         require(_startTime >= now);
         require(_endTime >= _startTime);
         require(_rate > 0);
-        require(_beneficiary != address(0));
+        require(_fund != address(0));
         require(_token != address(0));
 
         startTime = _startTime;
         endTime = _endTime;
         rate = _rate;
-        beneficiary = _beneficiary;
-        token = BaseToken(_token);
+        fund = _fund;
+        token = IERC20(_token);
+        fund.startSale(); //external function in Fund.sol
     }
 
     modifier isSaleOpened() {
@@ -74,7 +76,7 @@ contract Crowdsale {
         bool send_token_success = token.transfer(buyer, token_amount);
         emit TokenPurchase(buyer, weiAmount, token_amount, send_token_success);
         bool get_ether_success = forwardFunds(weiAmount);
-        emit StoreEtherToWallet(msg.sender, beneficiary, weiAmount, token_amount, get_ether_success);
+        emit StoreEtherToWallet(msg.sender, fund, weiAmount, token_amount, get_ether_success);
     }
 
     // @return true if crowdsale event has ended
@@ -89,13 +91,16 @@ contract Crowdsale {
     // override to create custom fund forwarding mechanisms
     function forwardFunds(uint wei_amount) public payable returns (bool){
         require(msg.value == wei_amount);
-        beneficiary.transfer(msg.value);
+        fund.transfer(msg.value);
         return true;
     }
-    function devidePool() private onlyOwner{
-
+    function _dividePool() internal onlyOwner {
+        fund.dividePoolAfterSale();
     }
     function finalizeFunds() public onlyOwner{
+        require(hasEnded());
+        fund.finalizeSale();
+        _dividePool();
         //close sale
         //give initial fund
         //Refund vote activate

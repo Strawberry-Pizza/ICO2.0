@@ -4,8 +4,9 @@
 
 pragma solidity ^0.4.21;
 
-import "../token/BaseToken.sol"
+import "../token/ERC20.sol"
 import "../token/IERC20.sol"
+import "../fund/Fund.sol"
 import "./BaseVoting.sol";
 import "./TapVoting.sol";
 import "./RefundVoting.sol";
@@ -26,8 +27,13 @@ contract VotingFactory is Ownable {
     event DestroyVote(address indexed vote_account, string indexed name, VOTE_TYPE type);
 
     //call when Crowdsale finished
-    function VotingFactory(address _tokenAddress) public {
+    function VotingFactory(address _tokenAddress, address _fundAddress) public onlyDevelopers {
+        require(_tokenAddress != 0x0);
+        require(_fundAddress != 0x0);
+
         token = IERC20(_tokenAddress);
+        Fund fund = Fund(_fundAddress);
+        fund.setVotingFactoryAddress(this.address);
     }
     function isVoteExist(string _votingName) view public returns(bool) {
         return voteList[_votingName].isExist;
