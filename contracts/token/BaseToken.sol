@@ -7,13 +7,18 @@ import "./IERC20.sol";
 contract BaseToken is Ownable, IERC20 {
     using SafeMath for uint256;
 
-    address public beneficiary;
-    address public owner;
-    /* This creates an array with all balances */
+    string public name;
+    string public symbol;
+    uint8 public decimals;
+    uint256 public totalSupply;
+    mapping (address => uint256) public balanceOf;
     mapping (address => uint256) public freezeOf;
     mapping (address => mapping (address => uint256)) public allowance;
+    address public owner;
 
     /* EVENTS */
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed from, uint256 value);
     event Freeze(address indexed from, uint256 value);
     event Unfreeze(address indexed from, uint256 value);

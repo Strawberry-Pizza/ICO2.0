@@ -4,15 +4,13 @@ import "./BaseVoting.sol";
 
 contract TapVoting is BaseVoting {
 
-	uint public constant MIN_TERM = 7 days; // should be changed
-	uint public constant MAX_TERM = 2 weeks; // should be changed
+	uint256 public constant MIN_TERM = 7 days; // should be changed
+	uint256 public constant MAX_TERM = 2 weeks; // should be changed
 
     function TapVoting(string _votingName) BaseVoting(_votingName) {
-
     }
-
     //@Override
-    function initialize(uint term) public returns(bool){
+    function initialize(uint256 term) public returns(bool){
     	require(term > MIN_TERM && MAX_TERM > term);
     	super.initialize(term);
     }

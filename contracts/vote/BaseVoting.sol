@@ -41,13 +41,13 @@ contract BaseVoting is Ownable, BaseToken {
     /*FUNCTION*/
 
     //initialize -> open -> close -> finalize
-    function initialize(uint term) public returns(bool) {
+    function initialize(uint256 term) external returns(bool) {
         require(!isInitialized && isFinalized);
         startTime = now;
         endTime = now + term; // you should change the alpha into proper value.
-        emit InitializeVote(address(this), votingName, startTime, endTime);
         isInitialized = true;
         isFinalized = false;
+        emit InitializeVote(address(this), votingName, startTime, endTime);
         return true;
     }
 
@@ -60,6 +60,7 @@ contract BaseVoting is Ownable, BaseToken {
     }
 
     function closeVoting() public returns(bool){
+        require(now >= endTime);
         require(isOpened);
 
         isOpened = false;
@@ -67,13 +68,15 @@ contract BaseVoting is Ownable, BaseToken {
     }
 
     function finalize() public returns(bool){
+        //TODO: specify the condition of finality
         require(!isFinalized && !isOpened);
 
         isFinalized = true;
         return true;
     }
 
-    function vote() public returns(bool agree) { 
+    function vote() public returns(bool agree) {
+        //TODO: should be fixed by parameter value
         require(msg.sender != 0x0);
         require(!party_list[msg.sender]||party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
         uint votePower = balanceOf[msg.sender];
@@ -89,6 +92,7 @@ contract BaseVoting is Ownable, BaseToken {
         }
     }
     function revoke() public returns(bool) {
+        //TODO: should be fixed by parameter value
         require(msg.sender != 0x0);
         require(party_list[msg.sender] != VOTESTATE.NONE); // can vote only once
         uint256 memory votePower = 0.5**revoke_list[msg.sender];
