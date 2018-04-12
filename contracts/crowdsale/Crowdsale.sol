@@ -15,29 +15,27 @@ import "../ownership/Ownable.sol";
  * must be owner of the token in order to be able to mint it.
  */
 contract Crowdsale is Ownable {
+    /* Library and Typedefs */
     using SafeMath for uint256;
-    // The token being sold
+    /* Global Variables */
     IERC20 public token; //address
     uint256 public startTime;
     uint256 public endTime;
     address public fund; // ether bank, it should be Fund.sol's Contract address
     uint256 public fundingGoal;
     uint256 public currentAmount;
-
-    // how many token units a buyer gets per wei
-    uint256 public rate;
-
-    /*
-     * event for token purchase logging
-     * @param purchaser who paid for the tokens
-     * @param fund who got the tokens
-     * @param value weis paid for purchase
-     * @param amount amount of tokens purchased
-     */
+    uint256 public rate; // how many token units a buyer gets per wei
+    /* Events */
     event TokenPurchase(address indexed purchaser, uint256 wei_amount, uint256 token_amount, bool success);
     event StoreEtherToWallet(address indexed purchaser, address indexed wallet_address, uint256 wei_amount, uint256 token_amount, bool success);
     //event GoalReached(uint256 endtime, uint256 total_amount);
-
+    /* Modifiers */
+    modifier isSaleOpened() {
+            require(now >= startTime && now <= endTime);
+            require(currentAmount <= fundingGoal);
+            _;
+    }
+    /* Constructor */
     function Crowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _fund, address _token) public onlyOwner {
         require(_startTime >= now);
         require(_endTime >= _startTime);
@@ -53,17 +51,12 @@ contract Crowdsale is Ownable {
         fund.startSale(); //external function in Fund.sol
     }
 
-    modifier isSaleOpened() {
-            require(now >= startTime && now <= endTime);
-            require(currentAmount <= fundingGoal);
-            _;
-    }
-    // fallback function can be used to buy tokens
+    /* Fallback Function */
     function () external payable {
         buyTokens(msg.sender);
     }
 
-    // low level token purchase function
+    /* Token Purchase Function */
     function buyTokens(address buyer) public payable isSaleOpened {
         require(buyer != address(0));
         require(msg.value + currentAmount <= fundingGoal);
@@ -78,7 +71,6 @@ contract Crowdsale is Ownable {
         bool get_ether_success = forwardFunds(weiAmount);
         emit StoreEtherToWallet(msg.sender, fund, weiAmount, token_amount, get_ether_success);
     }
-
     // @return true if crowdsale event has ended
     function hasEnded() public view returns (bool) {
         return now > endTime;
@@ -107,6 +99,4 @@ contract Crowdsale is Ownable {
         //set tapVoting available
         //start lock counting
     }
-
-
 }

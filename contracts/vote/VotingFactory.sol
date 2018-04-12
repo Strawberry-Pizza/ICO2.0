@@ -13,19 +13,22 @@ import "./RefundVoting.sol";
 import "../ownership/Ownable.sol"
 
 contract VotingFactory is Ownable {
-
-    IERC20 token;
+    /* Typedefs */
     enum VOTE_TYPE {REFUND, TAP};
     struct voteInfo {
         address voteAddress;
         VOTE_TYPE voteType;
         bool isExist;
     }
+    /* Global Variables */
+    IERC20 token;
     mapping(string => voteInfo) voteList; // {vote name => {voteAddress, voteType}}
 
+    /* Events */
     event CreateNewVote(address indexed vote_account, string indexed name, VOTE_TYPE type);
     event DestroyVote(address indexed vote_account, string indexed name, VOTE_TYPE type);
 
+    /* Constructor */
     //call when Crowdsale finished
     function VotingFactory(address _tokenAddress, address _fundAddress) public onlyDevelopers {
         require(_tokenAddress != 0x0);
@@ -44,7 +47,7 @@ contract VotingFactory is Ownable {
         if(vote_type == VOTE_TYPE.REFUND) {
             RefundVoting v = new RefundVoting(_votingName);
             v.initialize(term);
-        } 
+        }
         else if(vote_type == VOTE_TYPE.TAP) {
             TapVoting v = new TapVoting(_votingName);
             v.initialize(term);

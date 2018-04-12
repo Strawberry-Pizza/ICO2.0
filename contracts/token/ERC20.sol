@@ -5,8 +5,9 @@ import "../ownership/Ownable.sol";
 import "./IERC20.sol";
 
 contract ERC20 is Ownable, IERC20 {
+    /* Library */
     using SafeMath for uint256;
-
+    /* Global Variables */
     string public name;
     string public symbol;
     uint8 public decimals;
@@ -15,14 +16,13 @@ contract ERC20 is Ownable, IERC20 {
     mapping (address => uint256) public freezeOf;
     mapping (address => mapping (address => uint256)) public allowance;
     address public owner;
-
-    /* EVENTS */
+    /* Events */
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed from, uint256 value);
     event Freeze(address indexed from, uint256 value);
     event Unfreeze(address indexed from, uint256 value);
-    /* CONSTRUCTOR */
+    /* Constructor */
     function ERC20 (
         uint256 initialSupply,
         uint8 decimals_,
@@ -35,7 +35,7 @@ contract ERC20 is Ownable, IERC20 {
         decimals = decimals_;                            // Amount of decimals for display purposes
         owner = msg.sender;
     }
-    /* OPERATIONS */
+    /* Functions */
     function transfer(address _to, uint256 _value) public returns (bool success) {
         require(_to != 0x0);                               // Prevent transfer to 0x0 address. Use burn() instead
         require(_value > 0);
@@ -46,14 +46,14 @@ contract ERC20 is Ownable, IERC20 {
         emit Transfer(msg.sender, _to, _value);                   // Notify anyone listening that this transfer took place
         return true;
     }
-    /* Allow another contract to spend some tokens in your behalf */
+    // Allow another contract to spend some tokens in your behalf
     function approve(address _spender, uint256 _value) public returns (bool success) {
         require(_value > 0);
         allowance[msg.sender][_spender] = _value;
         emit Approve(msg.sender, _spender, _value);
         return true;
     }
-    /* A contract attempts to get the coins */
+    // A contract attempts to get the coins
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
         require(_to != address(0));                                // Prevent transfer to 0x0 address. Use burn() instead
         require(_value > 0);

@@ -12,6 +12,7 @@ import "../ownership/Ownable.sol";
 import "../lib/SafeMath.sol";
 
 contract Fund is Ownable, IERC20 {
+    /* Library and Typedefs */
     using SafeMath for uint256;
     enum FUNDSTATE {
         BEFORE_SALE,
@@ -20,11 +21,10 @@ contract Fund is Ownable, IERC20 {
         LOCKED,
         COLLAPSED
     }
-    /*Constants*/
+
+    /* Global Variables */
     uint256 public constant INITIAL_TAP = 0.01 ether; //(0.01 ether/sec)
     uint256 public constant DEV_VESTING_PERIOD = 1 years;
-    
-    /*Global variables*/
     // totalEther = [contract_account].balance
     FUNDSTATE public state;
     IERC20 public token;
@@ -34,17 +34,17 @@ contract Fund is Ownable, IERC20 {
     uint256 public retapVotingStartTime; // term that the new tap voting is able to restart
     IncentivePool inc_pool;
 
-    /*Modifiers*/
+    /* Modifiers */
     modifier period(FUNDSTATE _state) {
         require(state == _state);
         _;
     }
 
-    /*Events*/
+    /* Events */
     event CreateFund(address indexed token_address, address indexed team_wallet, address creator);
     //add more
 
-    /*Constructor*/
+    /* Constructor */
     function Fund(address _token, address _teamWallet) public onlyDevelopers {
         token = IERC20(_token);
         teamWallet = _teamWallet;
@@ -54,7 +54,7 @@ contract Fund is Ownable, IERC20 {
         emit CreateFund(token, teamWallet, msg.sender);
     }
 
-    /*view function*/
+    /* View Function */
     function getVestingRate() view public returns(uint256) {
         uint256 term = SafeMath.safeSub(now, startTime); // is the unit same?
         return SafeMath.safeDiv(term, DEV_VESTING_PERIOD);
@@ -66,35 +66,35 @@ contract Fund is Ownable, IERC20 {
     function getVotingFactoryAddress() view public returns(address) { return votingFactoryAddress; }
     function getIncentivePool() view public returns(IncentivePool) { return inc_pool; }
 
-    /*set function*/
+    /* Set Function */
     function setTap(uint256 rate) external returns(bool){
         tap = SafeMath.safeMul(tap, rate);
     }
-    function setVotingFactoryAddress(address _votingfacaddr) external onlyDevelopers{ 
+    function setVotingFactoryAddress(address _votingfacaddr) external onlyDevelopers{
         require(_votingfacaddr != 0x0);
-        votingFactoryAddress = _votingfacaddr; 
+        votingFactoryAddress = _votingfacaddr;
     }
-    
-    /*fallback function*/
+
+    /* Fallback Function */
     function () external payable {}
 
-    /*state function*/
+    /* State Function */
     function startSale() external period(FUNDSTATE.BEFORE_SALE) {}
     function finalizeSale() external period(FUNDSTATE.CROWDSALE) {}
     function dividePoolAfterSale() external period(FUNDSTATE.WORKING) payable {
     //TODO: divide ETH into incentive pool(1%) and others.
     }
-    /*tap function*/
+    /* Tap Function */
     function increaseTap(uint256 change) external period(FUNDSTATE.WORKING) {}
     function decreaseTap(uint256 change) external period(FUNDSTATE.WORKING) {}
 
-    /*withdraw function*/
+    /* Withdraw Function */
     function withdrawFromFund() external onlyDevelopers period(FUNDSTATE.WORKING) payable {}
 
-    /*lock function*/
+    /* Fund Lock Function */
     function lockFund() external period(FUNDSTATE.WORKING) {}
 
-    /*refund function*/
+    /* Refund Function */
     function refund() external period(FUNDSTATE.LOCKED) {}
 }
 
