@@ -6,108 +6,82 @@ import "../token/Fund.sol";
 import "../lib/SafeMath.sol";
 
 contract BaseVoting is Ownable, ERC20 {
+    /*Library and Typedefs*/
     using SafeMath for uint256;
-
+    enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED}
+    enum VOTE_STATE {NONE, AGREE, DISAGREE}
+    enum RESULT_STATE {NONE, PASSED, REJECTED}
+    /* Global Variables */
     string public votingName;
-    bool public isInitialized = false;
-    bool public isFinalized = true;
-    bool public isOpened = false;
+    VOTE_PERIOD period;
     uint256 public startTime;
     uint256 public endTime;
-    
     uint256 public agree_power = 0;
     uint256 public disagree_power = 0;
     uint256 public absent_power; //how can we count the number of whole member?
     uint256 public constant ABSENT_N = 6;
-
-    enum VOTESTATE {NONE, AGREE, DISAGREE}
-    mapping(address=>VOTESTATE) public party_list;
+    mapping(address=>VOTE_STATE) public party_list;
     mapping(address=>uint256) public revoke_list; //account=>revoke count
-
-    /* EVENTS */
+    /* Events */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
-    /* CONSTRUCTOR */
+    event OpenVoting(address indexed opener, uint256 open_time);
+    event CloseVoting(address indexed closer, uint256 close_time);
+    event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
+    /* Constructor */
     function BaseVoting(string _votingName) public {
         votingName = _votingName;
+        period = VOTE_PERIOD.NONE;
     }
-    /*VIEW FUNCTION*/
+    /* View Function */
     function isActivated() public view returns(bool) {
-        return (isOpened);
+        return (period == VOTE_PERIOD.OPENED);
     }
     function getInfo() public view returns(struct); //TODO
-    function getName() public view returns(string){
-        return votingName;
-    }
+    function getName() public view returns(string){ return votingName; }
     function getTotalParty() public view returns(uint256) {
         return SafeMath.safeAdd(agree_power, disagree_power);
     }
 
-    /*FUNCTION*/
-
-    //initialize -> open -> close -> finalize
+    /* Voting Period Function
+     * order: initialize -> open -> close -> finalize
+     */
     function initialize(uint256 term) external returns(bool) {
-        require(!isInitialized && isFinalized);
+        require(period == VOTE_PERIOD.NONE);
+        require(msg.sender != 0x0);
+
         startTime = now;
         endTime = now + term; // you should change the alpha into proper value.
-        isInitialized = true;
-        isFinalized = false;
+        period = VOTE_PERIOD.INITIALIZED;
         emit InitializeVote(address(this), votingName, startTime, endTime);
         return true;
     }
-
     function openVoting() public returns(bool){
-        require(!isOpened && isInitialized);
+        require(period == VOTE_PERIOD.INITIALIZED);
 
-        isOpened = true;
-        isInitialized = false;
+        period = VOTE_PERIOD.OPENED;
+        emit OpenVoting(msg.sender, now);
         return true;
     }
-
     function closeVoting() public returns(bool){
         require(now >= endTime);
-        require(isOpened);
+        require(period == VOTE_PERIOD.OPENED);
 
-        isOpened = false;
+        period = VOTE_PERIOD.CLOSED;
+        emit CloseVoting(msg.sender, now);
         return true;
     }
+    //TODO: specify the condition of finality
+    function finalize() public returns(RESULT_STATE);
 
-    function finalize() public returns(bool){
-        //TODO: specify the condition of finality
-        require(!isFinalized && !isOpened);
+    /* Personal Voting function
+     * vote, revoke
+     */
+    function vote() public returns(bool agree);
+    //TODO: not implemented yet
+    function revoke() public returns(bool);
 
-        isFinalized = true;
-        return true;
-    }
-
-    function vote() public returns(bool agree) {
-        //TODO: should be fixed by parameter value
-        require(isActivated());
-        require(msg.sender != 0x0);
-        require(party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
-    }
-    function revoke() public returns(bool) {
-        //TODO: should be fixed by parameter value
-        require(isActivated());
-        require(msg.sender != 0x0);
-        require(party_list[msg.sender] != VOTESTATE.NONE); // can vote only once
-        uint256 memory votePower = 0.5**revoke_list[msg.sender];
-        //add sender to revoke_list(or count up)
-        if(revoke_list[msg.sender] > 0) { revoke_list[msg.sender]++; }
-        else { revoke_list[msg.sender] = 1; }
-        //subtract the count that sender voted before
-        if(party_list[msg.sender] == VOTESTATE.AGREE){
-            agree_power -= votePower;
-            total_party -= votePower;
-        }
-        else if(party_list[msg.sender] == VOTESTATE.DISAGREE) {
-            disagree_power -= votePower;
-            total_party -= votePower;
-        }
-        //change the voter's state to NONE.
-        party_list[msg.sender] = VOTESTATE.NONE;
-        return true;
-    }
-
+    /* Destroy function */
+    //TODO: no need?
     function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
     function destroy() external onlyDevelopers returns(bool){
         require(isFinalized);
