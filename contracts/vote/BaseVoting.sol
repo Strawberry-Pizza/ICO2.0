@@ -15,9 +15,10 @@ contract BaseVoting is Ownable, ERC20 {
     uint256 public startTime;
     uint256 public endTime;
     
-    uint256 public total_party = 0;
-    uint256 public agree_party = 0;
-    uint256 public disagree_party = 0;
+    uint256 public agree_power = 0;
+    uint256 public disagree_power = 0;
+    uint256 public absent_power; //how can we count the number of whole member?
+    uint256 public constant ABSENT_N = 6;
 
     enum VOTESTATE {NONE, AGREE, DISAGREE}
     mapping(address=>VOTESTATE) public party_list;
@@ -36,6 +37,9 @@ contract BaseVoting is Ownable, ERC20 {
     function getInfo() public view returns(struct); //TODO
     function getName() public view returns(string){
         return votingName;
+    }
+    function getTotalParty() public view returns(uint256) {
+        return SafeMath.safeAdd(agree_power, disagree_power);
     }
 
     /*FUNCTION*/
@@ -77,22 +81,13 @@ contract BaseVoting is Ownable, ERC20 {
 
     function vote() public returns(bool agree) {
         //TODO: should be fixed by parameter value
+        require(isActivated());
         require(msg.sender != 0x0);
-        require(!party_list[msg.sender]||party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
-        uint votePower = balanceOf[msg.sender];
-        if(agree) {
-            party_list[msg.sender] = VOTESTATE.AGREE;
-            agree_party += votePower;
-            total_party += votePower;
-        }
-        else {
-            party_list[msg.sender] = VOTESTATE.DISAGREE;
-            disagree_party += votePower;
-            total_party += votePower;
-        }
+        require(party_list[msg.sender] == VOTESTATE.NONE); // can vote only once
     }
     function revoke() public returns(bool) {
         //TODO: should be fixed by parameter value
+        require(isActivated());
         require(msg.sender != 0x0);
         require(party_list[msg.sender] != VOTESTATE.NONE); // can vote only once
         uint256 memory votePower = 0.5**revoke_list[msg.sender];
@@ -101,11 +96,11 @@ contract BaseVoting is Ownable, ERC20 {
         else { revoke_list[msg.sender] = 1; }
         //subtract the count that sender voted before
         if(party_list[msg.sender] == VOTESTATE.AGREE){
-            agree_party -= votePower;
+            agree_power -= votePower;
             total_party -= votePower;
         }
         else if(party_list[msg.sender] == VOTESTATE.DISAGREE) {
-            disagree_party -= votePower;
+            disagree_power -= votePower;
             total_party -= votePower;
         }
         //change the voter's state to NONE.

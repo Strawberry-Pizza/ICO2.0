@@ -84,7 +84,7 @@ contract ERC20 is Ownable, IERC20 {
     }
     function unfreeze(uint256 _value) public returns (bool success) {
         //require(now >= "ico_time+2 month");
-        require(_value > 0);
+        require(_value > 0 && _value <= );
         require(freezeOf[msg.sender] >= _value);            // Check if the sender has enough
         freezeOf[msg.sender] = SafeMath.safeSub(freezeOf[msg.sender], _value);                      // Subtract from the sender
         balanceOf[msg.sender] = SafeMath.safeAdd(balanceOf[msg.sender], _value);
