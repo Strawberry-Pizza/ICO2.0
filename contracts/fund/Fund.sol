@@ -5,6 +5,7 @@
 
 pragma solidity ^0.4.21;
 
+import "../fund/IncentivePool.sol";
 import "../token/ERC20.sol";
 import "../token/IERC20.sol";
 import "../crowdsale/Crowdsale.sol";
@@ -28,6 +29,7 @@ contract Fund is Ownable, IERC20 {
     // totalEther = [contract_account].balance
     FUNDSTATE public state;
     IERC20 public token;
+    Crowdsale public crowdsale;
     address public teamWallet; // no restriction for withdrawing
     uint256 public tap;
     address public votingFactoryAddress;
@@ -45,9 +47,10 @@ contract Fund is Ownable, IERC20 {
     //add more
 
     /* Constructor */
-    function Fund(address _token, address _teamWallet) public onlyDevelopers {
+    function Fund(address _token, address _teamWallet, address _crowdsale) public onlyDevelopers {
         token = IERC20(_token);
         teamWallet = _teamWallet;
+        crowdsale = Crowdsale(_crowdsale);
         state = FUNDSTATE.BEFORE_SALE;
         inc_pool = new IncentivePool();
         tap = INITIAL_TAP;
@@ -56,7 +59,7 @@ contract Fund is Ownable, IERC20 {
 
     /* View Function */
     function getVestingRate() view public returns(uint256) {
-        uint256 term = SafeMath.safeSub(now, startTime); // is the unit same?
+        uint256 term = SafeMath.safeSub(now, crowdsale.getStartTime()); // is the unit same?
         return SafeMath.safeDiv(term, DEV_VESTING_PERIOD);
     }
     function getState() view public returns(FUNDSTATE) { return state; }

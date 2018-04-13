@@ -30,11 +30,14 @@ contract ERC20 is Ownable, IERC20 {
         string symbol_
         ) public {
         totalSupply = initialSupply;                        // Update total supply
+        decimals = decimals_;                            // Amount of decimals for display purposes
         name = name_;                                   // Set the name for display purposes
         symbol = symbol_;                               // Set the symbol for display purposes
-        decimals = decimals_;                            // Amount of decimals for display purposes
         owner = msg.sender;
     }
+    /* View Functions */
+    function getTotalSupply() view public returns(uint256) { return totalSupply; }
+    function getBalanceOf(address account) view public returns(uint256) { return balanceOf[account]; }
     /* Functions */
     function transfer(address _to, uint256 _value) public returns (bool success) {
         require(_to != 0x0);                               // Prevent transfer to 0x0 address. Use burn() instead
@@ -50,7 +53,7 @@ contract ERC20 is Ownable, IERC20 {
     function approve(address _spender, uint256 _value) public returns (bool success) {
         require(_value > 0);
         allowance[msg.sender][_spender] = _value;
-        emit Approve(msg.sender, _spender, _value);
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
     // A contract attempts to get the coins
@@ -84,7 +87,7 @@ contract ERC20 is Ownable, IERC20 {
     }
     function unfreeze(uint256 _value) public returns (bool success) {
         //require(now >= "ico_time+2 month");
-        require(_value > 0 && _value <= );
+        require(_value > 0);
         require(freezeOf[msg.sender] >= _value);            // Check if the sender has enough
         freezeOf[msg.sender] = SafeMath.safeSub(freezeOf[msg.sender], _value);                      // Subtract from the sender
         balanceOf[msg.sender] = SafeMath.safeAdd(balanceOf[msg.sender], _value);

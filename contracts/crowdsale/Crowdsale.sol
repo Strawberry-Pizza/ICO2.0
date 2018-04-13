@@ -2,6 +2,7 @@ pragma solidity ^0.4.21;
 
 import "../token/ERC20.sol";
 import "../token/IERC20.sol";
+import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
 import "../ownership/Ownable.sol";
 /**
@@ -21,7 +22,7 @@ contract Crowdsale is Ownable {
     IERC20 public token; //address
     uint256 public startTime;
     uint256 public endTime;
-    address public fund; // ether bank, it should be Fund.sol's Contract address
+    Fund public fund; // ether bank, it should be Fund.sol's Contract address
     uint256 public fundingGoal;
     uint256 public currentAmount;
     uint256 public rate; // how many token units a buyer gets per wei
@@ -46,7 +47,7 @@ contract Crowdsale is Ownable {
         startTime = _startTime;
         endTime = _endTime;
         rate = _rate;
-        fund = _fund;
+        fund = Fund(_fund);
         token = IERC20(_token);
         fund.startSale(); //external function in Fund.sol
     }
@@ -55,7 +56,11 @@ contract Crowdsale is Ownable {
     function () external payable {
         buyTokens(msg.sender);
     }
-
+    /* View Function */
+    function getStartTime() view public returns(uint256) { return startTime; }
+    function getEndTime() view public returns(uint256) { return endTime; }
+    function getFundingGoal() view public returns(uint256) { return fundingGoal; }
+    function getCurrentAmount() view public returns(uint256) { return currentAmount; }
     /* Token Purchase Function */
     function buyTokens(address buyer) public payable isSaleOpened {
         require(buyer != address(0));
@@ -69,7 +74,7 @@ contract Crowdsale is Ownable {
         bool send_token_success = token.transfer(buyer, token_amount);
         emit TokenPurchase(buyer, weiAmount, token_amount, send_token_success);
         bool get_ether_success = forwardFunds(weiAmount);
-        emit StoreEtherToWallet(msg.sender, fund, weiAmount, token_amount, get_ether_success);
+        emit StoreEtherToWallet(msg.sender, address(fund), weiAmount, token_amount, get_ether_success);
     }
     // @return true if crowdsale event has ended
     function hasEnded() public view returns (bool) {
@@ -83,7 +88,7 @@ contract Crowdsale is Ownable {
     // override to create custom fund forwarding mechanisms
     function forwardFunds(uint wei_amount) public payable returns (bool){
         require(msg.value == wei_amount);
-        fund.transfer(msg.value);
+        address(fund).transfer(msg.value);
         return true;
     }
     function _dividePool() internal onlyOwner {

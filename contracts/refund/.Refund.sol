@@ -16,7 +16,7 @@ contract Refund is Ownable {
     event Refunding(address indexed account, uint256 refunded_wei_amount, uint256 token_amount, uint256 rate, bool success);
     /* VIEW FUNCTION */
     function estimateRefundETH(uint256 token_amount, address account) public view returns(uint256) {
-        uint256 _rate = SafeMath.safeDiv(token_amount,token.getTotalSupply());
+        uint256 _rate = SafeMath.safeDiv(token_amount, token.getTotalSupply());
         uint256 _refundedWeiAmount = SafeMath.safeMul(_rate, token.getBeneficiaryWeiAmount());
         return _refundedWeiAmount;
     }
