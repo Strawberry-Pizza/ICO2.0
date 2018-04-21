@@ -3,7 +3,7 @@
  * After DAICO, funded ether follows this contract.
  */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "../fund/IncentivePool.sol";
 import "../token/ERC20.sol";
@@ -38,7 +38,7 @@ contract Fund is Ownable, IERC20 {
 
     /* Modifiers */
     modifier period(FUNDSTATE _state) {
-        require(state == _state);
+        require(state == _state, "Different Period");
         _;
     }
 
@@ -47,7 +47,7 @@ contract Fund is Ownable, IERC20 {
     //add more
 
     /* Constructor */
-    function Fund(address _token, address _teamWallet, address _crowdsale) public onlyDevelopers {
+    constructor(address _token, address _teamWallet, address _crowdsale) public onlyDevelopers {
         token = IERC20(_token);
         teamWallet = _teamWallet;
         crowdsale = Crowdsale(_crowdsale);

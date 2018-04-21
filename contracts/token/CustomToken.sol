@@ -1,12 +1,12 @@
 /*withhold this contract*/
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "../token/ERC20.sol";
 import "../ownership/Ownable.sol";
 
 contract CustomToken is ERC20, Ownable {
-	function CustomToken(
+	constructor(
         uint256 initialSupply,
         uint8 decimals_,
         string name_,

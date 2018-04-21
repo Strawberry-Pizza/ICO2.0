@@ -2,7 +2,7 @@
  * VotingFactory.sol is used for creating new voting instance.
  */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "../token/ERC20.sol";
 import "../token/IERC20.sol";
@@ -30,7 +30,7 @@ contract VotingFactory is Ownable {
 
     /* Constructor */
     //call when Crowdsale finished
-    function VotingFactory(address _tokenAddress, address _fundAddress) public onlyDevelopers {
+    constructor(address _tokenAddress, address _fundAddress) public onlyDevelopers {
         require(_tokenAddress != 0x0);
         require(_fundAddress != 0x0);
 

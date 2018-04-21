@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "../token/ERC20.sol";
 import "../token/IERC20.sol";
@@ -37,7 +37,7 @@ contract Crowdsale is Ownable {
             _;
     }
     /* Constructor */
-    function Crowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _fund, address _token) public onlyOwner {
+    constructor(uint256 _startTime, uint256 _endTime, uint256 _rate, address _fund, address _token) public onlyOwner {
         require(_startTime >= now);
         require(_endTime >= _startTime);
         require(_rate > 0);

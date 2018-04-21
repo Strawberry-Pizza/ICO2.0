@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "../ownership/Ownable.sol";
 import "../token/ERC20.sol";
@@ -33,7 +33,7 @@ contract BaseVoting is Ownable {
     event CloseVoting(address indexed closer, uint256 close_time);
     event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
     /* Constructor */
-    function BaseVoting(string _votingName, address _tokenAddress) public {
+    constructor(string _votingName, address _tokenAddress) public {
         votingName = _votingName;
         token = ERC20(_tokenAddress);
         period = VOTE_PERIOD.NONE;

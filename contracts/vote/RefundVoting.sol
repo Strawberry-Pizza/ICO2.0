@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "./BaseVoting.sol";
 
@@ -6,7 +6,7 @@ contract RefundVoting is BaseVoting {
 
 	uint256 public constant TERM = 4 weeks; //should be changed
 
-    function RefundVoting(string _votingName, address _tokenAddress) public BaseVoting(_votingName, _tokenAddress) {}
+    constructor(string _votingName, address _tokenAddress) public BaseVoting(_votingName, _tokenAddress) {}
     function initialize(uint256 term) public returns(bool) {
     	super.initialize(TERM); //fixed term
     }

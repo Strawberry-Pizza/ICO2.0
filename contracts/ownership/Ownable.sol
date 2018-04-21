@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 
 contract Ownable {
@@ -14,7 +14,7 @@ contract Ownable {
     event DeleteDeveloper(address indexed owner_, address indexed dev_addr_);
 
     /* VIEW FUNCTION & CONSTRUCTOR */
-    function Ownable() public {
+    constructor() public {
         require(msg.sender != 0x0);
         emit CreateOwnership(owner);
         owner = msg.sender;
@@ -26,23 +26,24 @@ contract Ownable {
 
     /*MODIFIER*/
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, "Not Owner");
         _;
     }
 
     modifier onlyDevelopers() {
-        require(isDeveloper(msg.sender));
+        require(isDeveloper(msg.sender), "Not Developers");
         _;
     }
 
     modifier notDevelopers() {
-        require(!isDeveloper(msg.sender));
+        require(!isDeveloper(msg.sender), "You are developer");
         _;
     }
 
     /*FUNCTION*/
     function transferOwnership(address newOwner) public onlyOwner {
-        require(isDeveloper(newOwner));
+        require(newOwner != 0x0);
+        require(isDeveloper(newOwner), "Not Developers");
         emit OwnershipTransferred(owner, newOwner);
         developerLevel[newOwner] = DEV_LEVEL.OWNER;
         developerLevel[owner] = DEV_LEVEL.NONE;
@@ -51,15 +52,15 @@ contract Ownable {
 
     function enroll_developer(address dev_addr) public onlyOwner {
           require(dev_addr != 0x0);
-          require(!isDeveloper(dev_addr));
+          require(!isDeveloper(dev_addr), "It is developer");
           emit EnrollDeveloper(msg.sender, dev_addr);
           developerLevel[dev_addr] = DEV_LEVEL.DEV;
     }
 
     function delete_developer(address dev_addr) public onlyOwner {
           require(dev_addr != 0x0);
-          require(dev_addr != owner); // must not be self-destruct
-          require(isDeveloper(dev_addr));
+          require(dev_addr != owner, "Must not be self-destruct"); // must not be self-destruct
+          require(isDeveloper(dev_addr), "Not Developers");
           emit DeleteDeveloper(msg.sender, dev_addr);
           developerLevel[dev_addr] = DEV_LEVEL.NONE;
     }
