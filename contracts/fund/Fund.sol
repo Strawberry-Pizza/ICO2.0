@@ -2,16 +2,16 @@
  * This contract is about manipulating funded ether.
  * After DAICO, funded ether follows this contract.
  */
+pragma solidity ^0.4.23;
 
-pragma solidity ^0.4.21;
-
+import "../fund/IncentivePool.sol";
 import "../token/ERC20.sol";
 import "../token/IERC20.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../ownership/Ownable.sol";
 import "../lib/SafeMath.sol";
 
-contract Fund is Ownable, IERC20 {
+contract Fund is Ownable {
     /* Library and Typedefs */
     using SafeMath for uint256;
     enum FUNDSTATE {
@@ -27,16 +27,20 @@ contract Fund is Ownable, IERC20 {
     uint256 public constant DEV_VESTING_PERIOD = 1 years;
     // totalEther = [contract_account].balance
     FUNDSTATE public state;
-    IERC20 public token;
+    ERC20 public token;
     address public teamWallet; // no restriction for withdrawing
     uint256 public tap;
-    address public votingFactoryAddress;
     uint256 public retapVotingStartTime; // term that the new tap voting is able to restart
-    IncentivePool inc_pool;
+    uint256 public lastWithdrawTime;
+
+    Crowdsale public crowdsale;
+    VotingFactory public votingFactory;
+    ReservePool public res_pool;
+    IncentivePool public inc_pool;
 
     /* Modifiers */
     modifier period(FUNDSTATE _state) {
-        require(state == _state);
+        require(state == _state, "Different Period");
         _;
     }
 
@@ -45,31 +49,32 @@ contract Fund is Ownable, IERC20 {
     //add more
 
     /* Constructor */
-    function Fund(address _token, address _teamWallet) public onlyDevelopers {
+    constructor(address _token, address _teamWallet, address _crowdsale) public onlyDevelopers {
+        state = FUNDSTATE.BEFORE_SALE;
         token = IERC20(_token);
         teamWallet = _teamWallet;
-        state = FUNDSTATE.BEFORE_SALE;
+        crowdsale = Crowdsale(_crowdsale);
         inc_pool = new IncentivePool();
+        res_pool = new ReservePool();
         tap = INITIAL_TAP;
         emit CreateFund(token, teamWallet, msg.sender);
     }
 
     /* View Function */
     function getVestingRate() view public returns(uint256) {
-        uint256 term = SafeMath.safeSub(now, startTime); // is the unit same?
+        uint256 term = SafeMath.safeSub(now, crowdsale.getStartTime()); // is the unit same?
         return SafeMath.safeDiv(term, DEV_VESTING_PERIOD);
     }
     function getState() view public returns(FUNDSTATE) { return state; }
     function getToken() view public returns(IERC20) { return token; }
     function getTeamWallet() view public returns(address) { return teamWallet; }
     function getTap() view public returns(uint256) { return tap; }
-    function getVotingFactoryAddress() view public returns(address) { return votingFactoryAddress; }
-    function getIncentivePool() view public returns(IncentivePool) { return inc_pool; }
+    function getVotingFactoryAddress() view public returns(address) { return address(votingFactory); }
+    function getIncentiveAddress() view public returns(address) { return address(inc_pool); }
+    function getReserveAddress() view public returns(address) { return address(res_pool); }
+    function getWithdrawable() view public returns(uint256) { return tap*(now-lastWithdrawTime); }
 
     /* Set Function */
-    function setTap(uint256 rate) external returns(bool){
-        tap = SafeMath.safeMul(tap, rate);
-    }
     function setVotingFactoryAddress(address _votingfacaddr) external onlyDevelopers{
         require(_votingfacaddr != 0x0);
         votingFactoryAddress = _votingfacaddr;
@@ -81,18 +86,37 @@ contract Fund is Ownable, IERC20 {
     /* State Function */
     function startSale() external period(FUNDSTATE.BEFORE_SALE) {}
     function finalizeSale() external period(FUNDSTATE.CROWDSALE) {}
+    function lockFund() external period(FUNDSTATE.WORKING) {}
+
+    /* Tap Function */
+    function increaseTap(uint256 change) external period(FUNDSTATE.WORKING) {
+        tap.safeAdd(change);
+    }
+    function decreaseTap(uint256 change) external period(FUNDSTATE.WORKING) {
+        tap.safeSub(change);
+    }
+
+    /* Withdraw Function */
     function dividePoolAfterSale() external period(FUNDSTATE.WORKING) payable {
     //TODO: divide ETH into incentive pool(1%) and others.
     }
-    /* Tap Function */
-    function increaseTap(uint256 change) external period(FUNDSTATE.WORKING) {}
-    function decreaseTap(uint256 change) external period(FUNDSTATE.WORKING) {}
+    function withdrawFromFund() external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
+        require(teamWallet != 0x0, "teamWallet has not determined.");
+        if(!teamWallet.send(address(this))) { revert(); }
+        return true;
+    }
+    function withdrawFromIncentive() external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
+        require(address(inc_pool) != 0x0, "Incentive pool has not deployed.");
+        if(!inc_pool._withdraw()) { revert(); }
+        return true;
+    }
+    function withdrawFromReserve(uint256 weiAmount) external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
+        require(address(res_pool) != 0x0, "Reserve pool has not deployed.");
+        require(weiAmount <= res_pool.address, "Not enough balance in reserve pool.");
+        if(!res_pool._withdraw()) { revert(); }
+        return true;
+    }
 
-    /* Withdraw Function */
-    function withdrawFromFund() external onlyDevelopers period(FUNDSTATE.WORKING) payable {}
-
-    /* Fund Lock Function */
-    function lockFund() external period(FUNDSTATE.WORKING) {}
 
     /* Refund Function */
     function refund() external period(FUNDSTATE.LOCKED) {}

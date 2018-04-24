@@ -1,26 +1,31 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "../ownership/Ownable.sol";
 import "../token/ERC20.sol";
-import "../token/Fund.sol";
+import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
 
-contract BaseVoting is Ownable, ERC20 {
+contract BaseVoting is Ownable {
     /*Library and Typedefs*/
     using SafeMath for uint256;
     enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED}
     enum VOTE_STATE {NONE, AGREE, DISAGREE}
     enum RESULT_STATE {NONE, PASSED, REJECTED}
+    struct vote_receipt {
+        VOTE_STATE state;
+        uint256 power;
+    }
     /* Global Variables */
     string public votingName;
     VOTE_PERIOD period;
+    ERC20 public token;
     uint256 public startTime;
     uint256 public endTime;
-    uint256 public agree_power = 0;
+    uint256 public agree_power = 0; // real value is divided by 100(weight)
     uint256 public disagree_power = 0;
     uint256 public absent_power; //how can we count the number of whole member?
     uint256 public constant ABSENT_N = 6;
-    mapping(address=>VOTE_STATE) public party_list;
+    mapping(address=>vote_receipt) public party_list;
     mapping(address=>uint256) public revoke_list; //account=>revoke count
     /* Events */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
@@ -28,15 +33,16 @@ contract BaseVoting is Ownable, ERC20 {
     event CloseVoting(address indexed closer, uint256 close_time);
     event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
     /* Constructor */
-    function BaseVoting(string _votingName) public {
+    constructor(string _votingName, address _tokenAddress) public {
         votingName = _votingName;
+        token = ERC20(_tokenAddress);
         period = VOTE_PERIOD.NONE;
     }
     /* View Function */
     function isActivated() public view returns(bool) {
         return (period == VOTE_PERIOD.OPENED);
     }
-    function getInfo() public view returns(struct); //TODO
+    //function getInfo() public view returns(string); //TODO
     function getName() public view returns(string){ return votingName; }
     function getTotalParty() public view returns(uint256) {
         return SafeMath.safeAdd(agree_power, disagree_power);
@@ -45,7 +51,7 @@ contract BaseVoting is Ownable, ERC20 {
     /* Voting Period Function
      * order: initialize -> open -> close -> finalize
      */
-    function initialize(uint256 term) external returns(bool) {
+    function initialize(uint256 term) public returns(bool) {
         require(period == VOTE_PERIOD.NONE);
         require(msg.sender != 0x0);
 
@@ -71,20 +77,20 @@ contract BaseVoting is Ownable, ERC20 {
         return true;
     }
     //TODO: specify the condition of finality
-    function finalize() public returns(RESULT_STATE);
+    function finalize() public returns(RESULT_STATE) { return RESULT_STATE.NONE; }
 
     /* Personal Voting function
      * vote, revoke
      */
-    function vote() public returns(bool agree);
+    function vote(bool agree) public returns(bool) { return false; }
     //TODO: not implemented yet
-    function revoke() public returns(bool);
+    function revoke() public returns(bool) { return false; }
 
     /* Destroy function */
     //TODO: no need?
-    function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
+    // function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
     function destroy() external onlyDevelopers returns(bool){
-        require(isFinalized);
+        require(period == VOTE_PERIOD.FINALIZED);
         selfdestruct(address(this));
         return true;
     }

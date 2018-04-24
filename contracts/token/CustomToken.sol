@@ -1,28 +1,17 @@
 /*withhold this contract*/
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
-import "./BaseToken.sol";
+import "../token/ERC20.sol";
 import "../ownership/Ownable.sol";
-import "../vote/VotingFactory.sol";
 
-contract CustomToken is BaseToken, Ownable {
-
-	VotingFactory factory;
-
-	function CustomToken(
+contract CustomToken is ERC20, Ownable {
+	constructor(
         uint256 initialSupply,
         uint8 decimals_,
         string name_,
         string symbol_
-        ) BaseToken(initialSupply, name_, symbol_, decimals_) public {
-		factory = new VotingFactory(address(this));
-    }
+        ) public ERC20(initialSupply, decimals_, name_, symbol_) {}
 
-    //@Override
-    function transfer(address _to, uint256 _value) public returns (bool success) {
-        if(super.transfer(_to, _value)){
-        	
-        }
-    }
+    function transfer(address _to, uint256 _value) public returns (bool success) {}
 }
