@@ -5,7 +5,7 @@ pragma solidity ^0.4.23;
 import "../token/ERC20.sol";
 import "../ownership/Ownable.sol";
 
-contract CustomToken is ERC20, Ownable {
+contract CustomToken is ERC20{
 	constructor(
         uint256 initialSupply,
         uint8 decimals_,

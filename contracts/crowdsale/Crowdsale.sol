@@ -18,37 +18,51 @@ import "../ownership/Ownable.sol";
 contract Crowdsale is Ownable {
     /* Library and Typedefs */
     using SafeMath for uint256;
+    /* Constants */
+    uint public constant HARD_CAP = 37500 ether;
+    uint public constant MIN_CONTRIB = 5000 ether;
+
+    uint public constant PUB_TOKEN_PERC = 20;
+    uint public constant PRIV_TOKEN_PERC = 20;
+    uint public constant RESERVE_TOKEN_PERC = 20;
+    uint public constant REWARD_TOKEN_PERC = 20;
+    uint public constant DEV_TOKEN_PERC = 15;
+    uint public constant ADV_TOKEN_PERC = 5;
+
+    uint public constant ETHER_MIN_CONTRIB = 1 ether;
+    uint public constant ETHER_MAX_CONTRIB = 300 ether;
+
+    uint public constant SALE_START_TIME = 0;
+    uint public constant SALE_END_TIME = 0;
+
+    uint public constant DEFAULT_RATE = 50*10**5; // how many token units a buyer gets per wei
+
     /* Global Variables */
     IERC20 public token; //address
-    uint256 public startTime;
-    uint256 public endTime;
     Fund public fund; // ether bank, it should be Fund.sol's Contract address
-    uint256 public fundingGoal;
     uint256 public currentAmount;
-    uint256 public rate; // how many token units a buyer gets per wei
+    uint8 public currentDiscountPerc = 20;
     /* Events */
-    event TokenPurchase(address indexed purchaser, uint256 wei_amount, uint256 token_amount, bool success);
+    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 wei_amount, uint256 token_amount, bool success);
     event StoreEtherToWallet(address indexed purchaser, address indexed wallet_address, uint256 wei_amount, uint256 token_amount, bool success);
+    event EtherChanges(address indexed purchaser, uint value); // send back ETH changes
     //event GoalReached(uint256 endtime, uint256 total_amount);
     /* Modifiers */
     modifier isSaleOpened() {
-            require(now >= startTime && now <= endTime);
-            require(currentAmount <= fundingGoal);
+            require(now >= SALE_START_TIME && now <= SALE_END_TIME);
+            require(currentAmount <= HARD_CAP);
             _;
     }
     /* Constructor */
-    constructor(uint256 _startTime, uint256 _endTime, uint256 _rate, address _fund, address _token) public onlyOwner {
-        require(_startTime >= now);
-        require(_endTime >= _startTime);
-        require(_rate > 0);
-        require(_fund != address(0));
-        require(_token != address(0));
+    constructor(
+        address _tokenAddress,
+        address _fundAddress
+        ) public Ownable(msg.sender) {
+        require(_fundAddress != address(0));
+        require(_tokenAddress != address(0));
 
-        startTime = _startTime;
-        endTime = _endTime;
-        rate = _rate;
-        fund = Fund(_fund);
-        token = IERC20(_token);
+        fund = Fund(_fundAddress);
+        token = IERC20(_tokenAddress);
         fund.startSale(); //external function in Fund.sol
     }
 
@@ -57,32 +71,67 @@ contract Crowdsale is Ownable {
         buyTokens(msg.sender);
     }
     /* View Function */
-    function getStartTime() view public returns(uint256) { return startTime; }
-    function getEndTime() view public returns(uint256) { return endTime; }
-    function getFundingGoal() view public returns(uint256) { return fundingGoal; }
+    function getStartTime() view public returns(uint256) { return SALE_START_TIME; }
+    function getEndTime() view public returns(uint256) { return SALE_END_TIME; }
+    function getFundingGoal() view public returns(uint256) { return HARD_CAP; }
     function getCurrentAmount() view public returns(uint256) { return currentAmount; }
     /* Token Purchase Function */
-    function buyTokens(address buyer) public payable isSaleOpened {
-        require(buyer != address(0));
-        require(msg.value + currentAmount <= fundingGoal);
+    function buyTokens(address _beneficiary) public payable isSaleOpened {
+        require(_beneficiary != address(0));
 
         uint256 weiAmount = msg.value;
         // calculate token amount to be created
-        uint256 token_amount = getTokenAmount(weiAmount); //token
-        // update state
-        currentAmount = SafeMath.safeAdd(currentAmount, weiAmount); //ether
-        bool send_token_success = token.transfer(buyer, token_amount);
-        emit TokenPurchase(buyer, weiAmount, token_amount, send_token_success);
-        bool get_ether_success = forwardFunds(weiAmount);
-        emit StoreEtherToWallet(msg.sender, address(fund), weiAmount, token_amount, get_ether_success);
+        uint tokens;
+        bool get_ether_success;
+        bool send_token_success;
+        if(!isOver(weiAmount)){
+            tokens = getTokenAmount(weiAmount);
+            send_token_success = token.transfer(_beneficiary, tokens);
+            emit TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens, send_token_success);
+        } else{
+            uint ether1;
+            uint ether2;
+            if(currentDiscountPerc > 0){
+                // When discount rate should be changed
+                ether2 = address(this).balance.safeAdd(weiAmount).safeSub(HARD_CAP.safeMul(5 - currentDiscountPerc/5).safeDiv(8));
+                ether1 = weiAmount.safeSub(ether2);
+                tokens = getTokenAmount(ether1);
+                send_token_success = token.transfer(_beneficiary, tokens);
+                emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens, send_token_success);
+
+                currentDiscountPerc -= 5;
+                uint additionalTokens = getTokenAmount(ether2);
+                send_token_success = token.transfer(_beneficiary, additionalTokens);
+                emit TokenPurchase(msg.sender, _beneficiary, ether2, additionalTokens, send_token_success);
+                tokens = tokens.safeAdd(additionalTokens);
+            } else if(currentDiscountPerc == 0){
+                // When CrowdSale Ended
+                ether2 = address(this).balance.safeAdd(weiAmount).safeSub(HARD_CAP);
+                ether1 = weiAmount.safeSub(ether2);
+                tokens = getTokenAmount(ether1);
+
+                send_token_success = token.transfer(_beneficiary, tokens);
+                emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens, send_token_success);
+                msg.sender.transfer(ether2);
+                emit EtherChanges(msg.sender, ether2);
+                get_ether_success = forwardFunds(ether1);
+                emit StoreEtherToWallet(msg.sender, address(fund), ether1, tokens, get_ether_success);
+                //finalize CrowdSale
+                return;
+            } else{
+                revert("DiscountRate should be positive");
+            }
+        }
+        get_ether_success = forwardFunds(weiAmount);
+        emit StoreEtherToWallet(msg.sender, address(fund), weiAmount, tokens, get_ether_success);
     }
     // @return true if crowdsale event has ended
     function hasEnded() public view returns (bool) {
-        return now > endTime;
+        return now > SALE_END_TIME;
     }
     // Override this method to have a way to add business logic to your crowdsale when buying
     function getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-        return SafeMath.safeMul(weiAmount, rate);
+        return weiAmount.safeMul(getRate());
     }
     // send ether to the fund collection wallet
     // override to create custom fund forwarding mechanisms
@@ -103,5 +152,31 @@ contract Crowdsale is Ownable {
         //Refund vote activate
         //set tapVoting available
         //start lock counting
+    }
+
+    // get current rate including the dicount percentage
+    function getRate() public view returns (uint){
+        uint rate = DEFAULT_RATE;
+        if(currentDiscountPerc == 0){
+            return rate;
+        } else{
+            return rate.safeMul(100).safeDiv(100 - currentDiscountPerc);
+        }
+    }
+
+    // function which checks the amount would be over next cap
+    function isOver(uint _weiAmount) public view returns(bool){
+        if(currentDiscountPerc == 0){
+            if(address(this).balance.safeAdd(_weiAmount) > HARD_CAP){
+                return true;
+            } else{
+                return false;
+            }
+        }
+        if(address(this).balance.safeAdd(_weiAmount) > HARD_CAP.safeMul(5 - currentDiscountPerc/5).safeDiv(8)){
+            return true;
+        } else{
+            return false;
+        }
     }
 }

@@ -14,10 +14,10 @@ contract Ownable {
     event DeleteDeveloper(address indexed owner_, address indexed dev_addr_);
 
     /* VIEW FUNCTION & CONSTRUCTOR */
-    constructor() public {
-        require(msg.sender != 0x0);
+    constructor(address _owner) public {
+        require(_owner != 0x0);
+        owner = _owner;
         emit CreateOwnership(owner);
-        owner = msg.sender;
         developerLevel[owner] = DEV_LEVEL.OWNER;
     }
     function isDeveloper(address addr) public constant returns(bool) {
