@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "./LockedTokens.sol";
 
@@ -21,12 +21,13 @@ contract VestingTokens is LockedTokens {
 
     enum LOCK_TYPE {DEV, ADV, PRIV}
 
-    function VestingTokens(IERC20 _token, address _crowdsaleAddress) public {
+    constructor(IERC20 _token, address _crowdsaleAddress) public {
         token = _token;
         crowdsaleAddress = _crowdsaleAddress;
     }
 
     function lockup(address _to, uint256 _amount, LOCK_TYPE _type) external {
+        require(msg.sender == crowdsaleAddress);
         if(_type == LOCK_TYPE.DEV){
             super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_1).safeDiv(100), DEV_VEST_PERIOD_1);
             super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_2).safeDiv(100), DEV_VEST_PERIOD_2);
@@ -37,7 +38,7 @@ contract VestingTokens is LockedTokens {
             super.addTokens(_to, _amount.safeMul(PRIV_VEST_PERC_1).safeDiv(100), PRIV_VEST_PERIOD_1);
             super.addTokens(_to, _amount.safeMul(PRIV_VEST_PERC_2).safeDiv(100), PRIV_VEST_PERIOD_2);
         } else{
-            revert();
+            revert("Worng Lock Type");
         }
     }
 
