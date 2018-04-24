@@ -13,15 +13,8 @@ contract ERC20 is Ownable, IERC20 {
     uint8 public decimals;
     uint256 public totalSupply;
     mapping (address => uint256) public balanceOf;
-    mapping (address => uint256) public freezeOf;
     mapping (address => mapping (address => uint256)) public allowance;
     address public owner;
-    /* Events */
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event Burn(address indexed from, uint256 value);
-    event Freeze(address indexed from, uint256 value);
-    event Unfreeze(address indexed from, uint256 value);
     /* Error Messages */
     string constant ERROR_NOT_ENOUGH = "Not Enough Value";
 

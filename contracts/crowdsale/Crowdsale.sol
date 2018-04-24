@@ -1,7 +1,6 @@
 pragma solidity ^0.4.23;
 
-import "../token/ERC20.sol";
-import "../token/IERC20.sol";
+import "../token/CustomToken.sol";
 import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
 import "../ownership/Ownable.sol";
@@ -39,7 +38,7 @@ contract Crowdsale is Ownable {
     uint public constant DEFAULT_RATE = 50*10**5; // how many token units a buyer gets per wei
 
     /* Global Variables */
-    IERC20 public token; //address
+    CustomToken public token; //address
     Fund public fund; // ether bank, it should be Fund.sol's Contract address
     VestingTokens public vestingTokens;
 
@@ -76,7 +75,7 @@ contract Crowdsale is Ownable {
         require(_tokenAddress != address(0));
 
         fund = Fund(_fundAddress);
-        token = IERC20(_tokenAddress);
+        token = CustomToken(_tokenAddress);
         fund.startSale(); //external function in Fund.sol
     }
 

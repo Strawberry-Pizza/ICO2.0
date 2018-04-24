@@ -2,16 +2,22 @@
 
 pragma solidity ^0.4.23;
 
-import "../token/ERC20.sol";
+import "./BaseToken.sol";
 import "../ownership/Ownable.sol";
 
-contract CustomToken is ERC20{
+contract CustomToken is BaseToken{
 	constructor(
-        uint256 initialSupply,
-        uint8 decimals_,
-        string name_,
-        string symbol_
-        ) public ERC20(initialSupply, decimals_, name_, symbol_) {}
+        uint256 _initialSupply,
+        uint8 _decimals,
+        string _name,
+        string _symbol
+        ) public {
+        totalSupply = _initialSupply;                        // Update total supply
+        decimals = _decimals;                            // Amount of decimals for display purposes
+        name = _name;                                   // Set the name for display purposes
+        symbol = _symbol;                               // Set the symbol for display purposes
+        owner = msg.sender;
+    }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {}
 }
