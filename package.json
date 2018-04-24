@@ -1,0 +1,32 @@
+{
+  "name": "ico2.0",
+  "version": "1.0.0",
+  "description": "Implementation of current daico design",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "zeppelin-solidity": "^1.8.0",
+    "truffle": "^4.1.5",
+    "ganache-cli": "6.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Strawberry-Pizza/ICO2.0.git"
+  },
+  "keywords": [
+    "ico2.0",
+    "daico",
+    "ico",
+    "solidity",
+    "ethereum",
+    "contract",
+    "smart"
+  ],
+  "author": "Jungwoo Pyo <wjddn1801@snu.ac.kr>",
+  "license": "GPL3.0",
+  "bugs": {
+    "url": "https://github.com/Strawberry-Pizza/ICO2.0/issues"
+  },
+  "homepage": "https://github.com/Strawberry-Pizza/ICO2.0#readme"
+}
