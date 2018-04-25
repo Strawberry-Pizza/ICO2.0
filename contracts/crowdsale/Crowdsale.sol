@@ -1,10 +1,10 @@
 pragma solidity ^0.4.23;
 
-import "../token/ERC20.sol";
-import "../token/IERC20.sol";
+import "../token/CustomToken.sol";
 import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
 import "../ownership/Ownable.sol";
+import "../token/VestingTokens.sol";
 /**
  * @title Crowdsale
  * @dev Crowdsale is a base contract for managing a token crowdsale.
@@ -38,10 +38,26 @@ contract Crowdsale is Ownable {
     uint public constant DEFAULT_RATE = 50*10**5; // how many token units a buyer gets per wei
 
     /* Global Variables */
-    IERC20 public token; //address
+    CustomToken public token; //address
     Fund public fund; // ether bank, it should be Fund.sol's Contract address
+    VestingTokens public vestingTokens;
+
     uint256 public currentAmount;
     uint8 public currentDiscountPerc = 20;
+    STATE public currentState = STATE.PREPARE;
+
+    enum STATE {PREPARE, ACTIVE, FINISHED}
+
+    //index => address => amount set of crowdsale participants
+    mapping(address => uint) public privateSale;
+    mapping(address => uint) public developers;
+    mapping(address => uint) public advisors;
+    mapping(address => uint) public userContributed;
+    address[] public privateSaleIndex;
+    address[] public developersIndex;
+    address[] public advisorsIndex;
+    address[] public userContributedIndex;
+
     /* Events */
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 wei_amount, uint256 token_amount, bool success);
     event StoreEtherToWallet(address indexed purchaser, address indexed wallet_address, uint256 wei_amount, uint256 token_amount, bool success);
@@ -49,9 +65,17 @@ contract Crowdsale is Ownable {
     //event GoalReached(uint256 endtime, uint256 total_amount);
     /* Modifiers */
     modifier isSaleOpened() {
-            require(now >= SALE_START_TIME && now <= SALE_END_TIME);
-            require(currentAmount <= HARD_CAP);
-            _;
+        require(now >= SALE_START_TIME && now <= SALE_END_TIME);
+        require(currentAmount <= HARD_CAP);
+        _;
+    }
+    modifier isSalePreparing(){
+        require(currentState == STATE.PREPARE);
+        _;
+    }
+    modifier isSaleFinished(){
+        require(currentState == STATE.FINISHED);
+        _;
     }
     /* Constructor */
     constructor(
@@ -62,7 +86,7 @@ contract Crowdsale is Ownable {
         require(_tokenAddress != address(0));
 
         fund = Fund(_fundAddress);
-        token = IERC20(_tokenAddress);
+        token = CustomToken(_tokenAddress);
         fund.startSale(); //external function in Fund.sol
     }
 
@@ -75,6 +99,11 @@ contract Crowdsale is Ownable {
     function getEndTime() view public returns(uint256) { return SALE_END_TIME; }
     function getFundingGoal() view public returns(uint256) { return HARD_CAP; }
     function getCurrentAmount() view public returns(uint256) { return currentAmount; }
+    /* Change CrowdSale State */
+    function activateSale() public onlyOwner isSalePreparing{
+        
+    }
+
     /* Token Purchase Function */
     function buyTokens(address _beneficiary) public payable isSaleOpened {
         require(_beneficiary != address(0));
@@ -84,11 +113,13 @@ contract Crowdsale is Ownable {
         uint tokens;
         bool get_ether_success;
         bool send_token_success;
-        if(!isOver(weiAmount)){
+        if(!isOver(weiAmount)){ //check if estimate ether exceeds next cap
             tokens = getTokenAmount(weiAmount);
             send_token_success = token.transfer(_beneficiary, tokens);
             emit TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens, send_token_success);
         } else{
+            //when estimate ether exceeds next cap
+            //we divide input ether by next cap
             uint ether1;
             uint ether2;
             if(currentDiscountPerc > 0){
@@ -124,6 +155,13 @@ contract Crowdsale is Ownable {
         }
         get_ether_success = forwardFunds(weiAmount);
         emit StoreEtherToWallet(msg.sender, address(fund), weiAmount, tokens, get_ether_success);
+        //add to map
+        if(userContributed[_beneficiary] > 0){
+            userContributed[_beneficiary] = userContributed[_beneficiary].safeAdd(tokens);
+        } else{
+            userContributed[_beneficiary] = tokens;
+            userContributedIndex.push(_beneficiary);
+        }
     }
     // @return true if crowdsale event has ended
     function hasEnded() public view returns (bool) {
@@ -133,9 +171,71 @@ contract Crowdsale is Ownable {
     function getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
         return weiAmount.safeMul(getRate());
     }
+    /* Below : have to add modifier which checks state of crowdsale */
+    //setting vesting token address only once
+    function setVestingTokens(address _vestingTokensAddress) public onlyOwner {
+        require(vestingTokens == address(0));
+        vestingTokens = VestingTokens(_vestingTokensAddress);
+    }
+    //add privateSale, developers, advisors
+    function addToPrivateSale(address _address, uint _tokens) public onlyOwner{
+        require(_address != address(0) && _tokens > 0);
+        if(privateSale[_address] > 0){
+            privateSale[_address] = privateSale[_address].safeAdd(_tokens);
+        } else{
+            privateSale[_address] = _tokens;
+            privateSaleIndex.push(_address);
+        }
+    }
+    function addToDevelopers(address _address, uint _tokens) public onlyOwner{
+        require(_address != address(0) && _tokens > 0);
+        if(developers[_address] > 0){
+            developers[_address] = developers[_address].safeAdd(_tokens);
+        } else{
+            developers[_address] = _tokens;
+            developersIndex.push(_address);
+        }
+    }
+    function addToAdvisors(address _address, uint _tokens) public onlyOwner{
+        require(_address != address(0) && _tokens > 0);
+        if(advisors[_address] > 0){
+            advisors[_address] = advisors[_address].safeAdd(_tokens);
+        } else{
+            advisors[_address] = _tokens;
+            advisorsIndex.push(_address);
+        }
+    }
+
+    // call after finalize, only call once
+    function lockup() private {
+        //check crowdsale ended
+        uint i = 0;
+        for (i = 0; i < privateSaleIndex.length; i++) {
+            vestingTokens.lockup(
+                privateSaleIndex[i],
+                privateSale[privateSaleIndex[i]],
+                VestingTokens.LOCK_TYPE.PRIV
+            );
+        }
+        for (i = 0; i < developersIndex.length; i++) {
+            vestingTokens.lockup(
+                developersIndex[i],
+                developers[developersIndex[i]],
+                VestingTokens.LOCK_TYPE.DEV
+            );
+        }
+        for (i = 0; i < advisorsIndex.length; i++) {
+            vestingTokens.lockup(
+                advisorsIndex[i],
+                advisors[advisorsIndex[i]],
+                VestingTokens.LOCK_TYPE.ADV
+            );
+        }
+    }
+
     // send ether to the fund collection wallet
     // override to create custom fund forwarding mechanisms
-    function forwardFunds(uint wei_amount) public payable returns (bool){
+    function forwardFunds(uint wei_amount) private returns (bool){
         require(msg.value == wei_amount);
         address(fund).transfer(msg.value);
         return true;

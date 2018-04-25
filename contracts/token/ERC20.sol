@@ -13,15 +13,8 @@ contract ERC20 is Ownable, IERC20 {
     uint8 public decimals;
     uint256 public totalSupply;
     mapping (address => uint256) public balanceOf;
-    mapping (address => uint256) public freezeOf;
     mapping (address => mapping (address => uint256)) public allowance;
     address public owner;
-    /* Events */
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event Burn(address indexed from, uint256 value);
-    event Freeze(address indexed from, uint256 value);
-    event Unfreeze(address indexed from, uint256 value);
     /* Error Messages */
     string constant ERROR_NOT_ENOUGH = "Not Enough Value";
 
@@ -78,23 +71,6 @@ contract ERC20 is Ownable, IERC20 {
         balanceOf[msg.sender] = SafeMath.safeSub(balanceOf[msg.sender], _value);                      // Subtract from the sender
         totalSupply = SafeMath.safeSub(totalSupply,_value);                                // Updates totalSupply
         emit Burn(msg.sender, _value);
-        return true;
-    }
-    function freeze(uint256 _value) public returns (bool success) {
-        require(_value > 0);
-        require(balanceOf[msg.sender] >= _value, ERROR_NOT_ENOUGH);
-        balanceOf[msg.sender] = SafeMath.safeSub(balanceOf[msg.sender], _value);                      // Subtract from the sender
-        freezeOf[msg.sender] = SafeMath.safeAdd(freezeOf[msg.sender], _value);                                // Updates totalSupply
-        emit Freeze(msg.sender, _value);
-        return true;
-    }
-    function unfreeze(uint256 _value) public returns (bool success) {
-        //require(now >= "ico_time+2 month");
-        require(_value > 0);
-        require(freezeOf[msg.sender] >= _value, ERROR_NOT_ENOUGH);
-        freezeOf[msg.sender] = SafeMath.safeSub(freezeOf[msg.sender], _value);                      // Subtract from the sender
-        balanceOf[msg.sender] = SafeMath.safeAdd(balanceOf[msg.sender], _value);
-        emit Unfreeze(msg.sender, _value);
         return true;
     }
 }
