@@ -4,6 +4,8 @@ import "./ERC20.sol";
 import "../lib/SafeMath.sol";
 
 contract BaseToken is ERC20 {
+
+    // functions which increase/decrease approval
     function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
         allowance[msg.sender][_spender] = allowance[msg.sender][_spender].safeAdd(_addedValue);
         emit Approval(msg.sender, _spender, allowance[msg.sender][_spender]);

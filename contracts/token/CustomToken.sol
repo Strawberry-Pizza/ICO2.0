@@ -18,6 +18,4 @@ contract CustomToken is BaseToken{
         symbol = _symbol;                               // Set the symbol for display purposes
         owner = msg.sender;
     }
-
-    function transfer(address _to, uint256 _value) public returns (bool success) {}
 }

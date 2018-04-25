@@ -4,6 +4,8 @@ import "./LockedTokens.sol";
 
 contract VestingTokens is LockedTokens {
 
+    enum LOCK_TYPE {DEV, ADV, PRIV}
+
     uint public constant DEV_VEST_PERIOD_1 = 12 weeks;
     uint public constant DEV_VEST_PERIOD_2 = 1 years;
     uint public constant DEV_VEST_PERC_1 = 30;
@@ -19,16 +21,14 @@ contract VestingTokens is LockedTokens {
     uint public constant PRIV_VEST_PERC_1 = 30;
     uint public constant PRIV_VEST_PERC_2 = 70;
 
-    enum LOCK_TYPE {DEV, ADV, PRIV}
-
     constructor(IERC20 _token, address _crowdsaleAddress) public {
-        token = _token;
-        crowdsaleAddress = _crowdsaleAddress;
+        mToken = _token;
+        mCrowdsaleAddress = _crowdsaleAddress;
     }
 
     //divide this function with vesting type 
     function lockup(address _to, uint256 _amount, LOCK_TYPE _type) external {
-        require(msg.sender == crowdsaleAddress);
+        require(msg.sender == mCrowdsaleAddress);
         if(_type == LOCK_TYPE.DEV){
             super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_1).safeDiv(100), now + DEV_VEST_PERIOD_1);
             super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_2).safeDiv(100), now + DEV_VEST_PERIOD_2);
