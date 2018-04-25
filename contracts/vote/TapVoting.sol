@@ -9,8 +9,7 @@ contract TapVoting is BaseVoting {
 	uint256 public constant MAX_TERM = 2 weeks; // should be changed
     uint256 public constant DEV_POWER = 70; // percent
     /* Constructor */
-    construtor(string _votingName, address _tokenAddress) BaseVoting(_votingName, _tokenAddress) public {
-    }
+    construtor(string _votingName, address _tokenAddress, address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
     /* View Function */
     function getTotalPower() view public returns(uint256) {
         //TODO: totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
@@ -55,6 +54,7 @@ contract TapVoting is BaseVoting {
         _snapshot();
         period = VOTE_PERIOD.FINALIZED;
         emit FinalizeVote(msg.sender, now, result);
+        fund.withdrawFromIncentive();
         return result;
     }
     /* Personal Voting function

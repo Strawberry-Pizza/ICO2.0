@@ -101,7 +101,7 @@ contract Crowdsale is Ownable {
     function getCurrentAmount() view public returns(uint256) { return currentAmount; }
     /* Change CrowdSale State */
     function activateSale() public onlyOwner isSalePreparing{
-        
+
     }
 
     /* Token Purchase Function */

@@ -21,7 +21,8 @@ contract VotingFactory is Ownable {
         bool isExist;
     }
     /* Global Variables */
-    IERC20 token;
+    IERC20 public token;
+    Fund public fund;
     mapping(string => voteInfo) voteList; // {vote name => {voteAddress, voteType}}
 
     /* Events */
@@ -35,7 +36,7 @@ contract VotingFactory is Ownable {
         require(_fundAddress != 0x0);
 
         token = IERC20(_tokenAddress);
-        Fund fund = Fund(_fundAddress);
+        fund = Fund(_fundAddress);
         fund.setVotingFactoryAddress(address(this));
     }
     function isVoteExist(string _votingName) view public returns(bool) {
@@ -45,13 +46,13 @@ contract VotingFactory is Ownable {
         require(isVoteExist(_votingName));
         require(vote_type != VOTE_TYPE.NONE);
         if(vote_type == VOTE_TYPE.REFUND) {
-            RefundVoting v_ref = new RefundVoting(_votingName, address(token));
+            RefundVoting v_ref = new RefundVoting(_votingName, address(token), address(fund));
             v_ref.initialize(term);
             emit CreateNewVote(address(v_ref), _votingName, vote_type);
             return address(v_ref);
         }
         if(vote_type == VOTE_TYPE.TAP) {
-            TapVoting v_tap = new TapVoting(_votingName, address(token));
+            TapVoting v_tap = new TapVoting(_votingName, address(token), address(fund));
             v_tap.initialize(term);
             emit CreateNewVote(address(v_tap), _votingName, vote_type);
             return address(v_tap);

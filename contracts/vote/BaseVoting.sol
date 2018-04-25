@@ -20,6 +20,7 @@ contract BaseVoting is Ownable {
     string public votingName;
     VOTE_PERIOD period;
     ERC20 public token;
+    Fund public fund;
     uint256 public startTime;
     uint256 public endTime;
     uint256 public agree_power = 0; // real value is divided by 100(weight)
@@ -34,10 +35,11 @@ contract BaseVoting is Ownable {
     event CloseVoting(address indexed closer, uint256 close_time);
     event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
     /* Constructor */
-    constructor(string _votingName, address _tokenAddress) public {
+    constructor(string _votingName, address _tokenAddress, address _fundAddress) external {
         votingName = _votingName;
         token = ERC20(_tokenAddress);
         period = VOTE_PERIOD.NONE;
+        fund = Fund(_fundAddress);
     }
     /* View Function */
     function isActivated() public view returns(bool) {
