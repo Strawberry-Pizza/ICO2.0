@@ -44,6 +44,9 @@ contract Crowdsale is Ownable {
 
     uint256 public currentAmount;
     uint8 public currentDiscountPerc = 20;
+    STATE public currentState = STATE.PREPARE;
+
+    enum STATE {PREPARE, ACTIVE, FINISHED}
 
     //index => address => amount set of crowdsale participants
     mapping(address => uint) public privateSale;
@@ -62,9 +65,17 @@ contract Crowdsale is Ownable {
     //event GoalReached(uint256 endtime, uint256 total_amount);
     /* Modifiers */
     modifier isSaleOpened() {
-            require(now >= SALE_START_TIME && now <= SALE_END_TIME);
-            require(currentAmount <= HARD_CAP);
-            _;
+        require(now >= SALE_START_TIME && now <= SALE_END_TIME);
+        require(currentAmount <= HARD_CAP);
+        _;
+    }
+    modifier isSalePreparing(){
+        require(currentState == STATE.PREPARE);
+        _;
+    }
+    modifier isSaleFinished(){
+        require(currentState == STATE.FINISHED);
+        _;
     }
     /* Constructor */
     constructor(
@@ -88,6 +99,11 @@ contract Crowdsale is Ownable {
     function getEndTime() view public returns(uint256) { return SALE_END_TIME; }
     function getFundingGoal() view public returns(uint256) { return HARD_CAP; }
     function getCurrentAmount() view public returns(uint256) { return currentAmount; }
+    /* Change CrowdSale State */
+    function activateSale() public onlyOwner isSalePreparing{
+        
+    }
+
     /* Token Purchase Function */
     function buyTokens(address _beneficiary) public payable isSaleOpened {
         require(_beneficiary != address(0));
@@ -219,7 +235,7 @@ contract Crowdsale is Ownable {
 
     // send ether to the fund collection wallet
     // override to create custom fund forwarding mechanisms
-    function forwardFunds(uint wei_amount) public payable returns (bool){
+    function forwardFunds(uint wei_amount) private returns (bool){
         require(msg.value == wei_amount);
         address(fund).transfer(msg.value);
         return true;
