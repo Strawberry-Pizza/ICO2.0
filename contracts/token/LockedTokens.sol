@@ -2,13 +2,14 @@ pragma solidity ^0.4.23;
 
 import "../lib/SafeMath.sol";
 import "./IERC20.sol";
+import "../ownership/Ownable.sol";
 
 
 /**
  * @title LockedTokens
  * @dev Lock tokens for certain period of time
  */
-contract LockedTokens{
+contract LockedTokens {
     using SafeMath for uint256;
     struct Tokens {
         uint256 amount;

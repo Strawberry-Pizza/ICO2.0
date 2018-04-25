@@ -26,17 +26,18 @@ contract VestingTokens is LockedTokens {
         crowdsaleAddress = _crowdsaleAddress;
     }
 
+    //divide this function with vesting type 
     function lockup(address _to, uint256 _amount, LOCK_TYPE _type) external {
         require(msg.sender == crowdsaleAddress);
         if(_type == LOCK_TYPE.DEV){
-            super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_1).safeDiv(100), DEV_VEST_PERIOD_1);
-            super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_2).safeDiv(100), DEV_VEST_PERIOD_2);
+            super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_1).safeDiv(100), now + DEV_VEST_PERIOD_1);
+            super.addTokens(_to, _amount.safeMul(DEV_VEST_PERC_2).safeDiv(100), now + DEV_VEST_PERIOD_2);
         } else if(_type == LOCK_TYPE.ADV){
-            super.addTokens(_to, _amount.safeMul(ADV_VEST_PERC_1).safeDiv(100), ADV_VEST_PERIOD_1);
-            super.addTokens(_to, _amount.safeMul(ADV_VEST_PERC_2).safeDiv(100), ADV_VEST_PERIOD_2);
+            super.addTokens(_to, _amount.safeMul(ADV_VEST_PERC_1).safeDiv(100), now + ADV_VEST_PERIOD_1);
+            super.addTokens(_to, _amount.safeMul(ADV_VEST_PERC_2).safeDiv(100), now + ADV_VEST_PERIOD_2);
         } else if(_type == LOCK_TYPE.PRIV){
-            super.addTokens(_to, _amount.safeMul(PRIV_VEST_PERC_1).safeDiv(100), PRIV_VEST_PERIOD_1);
-            super.addTokens(_to, _amount.safeMul(PRIV_VEST_PERC_2).safeDiv(100), PRIV_VEST_PERIOD_2);
+            super.addTokens(_to, _amount.safeMul(PRIV_VEST_PERC_1).safeDiv(100), now + PRIV_VEST_PERIOD_1);
+            super.addTokens(_to, _amount.safeMul(PRIV_VEST_PERC_2).safeDiv(100), now + PRIV_VEST_PERIOD_2);
         } else{
             revert("Worng Lock Type");
         }
