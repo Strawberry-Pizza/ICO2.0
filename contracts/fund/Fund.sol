@@ -103,17 +103,18 @@ contract Fund is Ownable {
     function withdrawFromFund() external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
         require(teamWallet != 0x0, "teamWallet has not determined.");
         if(!teamWallet.send(address(this))) { revert(); }
+        if(!withdrawFromIncentive()) { revert(); }
         return true;
     }
     function withdrawFromIncentive() external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
         require(address(inc_pool) != 0x0, "Incentive pool has not deployed.");
-        if(!inc_pool._withdraw()) { revert(); }
+        if(!inc_pool.withdraw()) { revert(); }
         return true;
     }
     function withdrawFromReserve(uint256 weiAmount) external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
         require(address(res_pool) != 0x0, "Reserve pool has not deployed.");
         require(weiAmount <= res_pool.address, "Not enough balance in reserve pool.");
-        if(!res_pool._withdraw()) { revert(); }
+        if(!res_pool.withdraw()) { revert(); }
         return true;
     }
 

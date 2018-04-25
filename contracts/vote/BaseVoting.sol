@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 import "../ownership/Ownable.sol";
 import "../token/ERC20.sol";
 import "../fund/Fund.sol";
-import "../lib/SafeMath.sol";
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract BaseVoting is Ownable {
     /*Library and Typedefs*/
@@ -14,6 +14,7 @@ contract BaseVoting is Ownable {
     struct vote_receipt {
         VOTE_STATE state;
         uint256 power;
+        bool isReceivedIncentive;
     }
     /* Global Variables */
     string public votingName;

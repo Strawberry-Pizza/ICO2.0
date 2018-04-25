@@ -17,8 +17,8 @@ contract TapVoting is BaseVoting {
         return 0;
     }
     function getAbsentPower() view public returns(uint256) {
-        uint256 voted_power = SafeMath.safeAdd(agree_power, disagree_power);
-        return SafeMath.safeSub(getTotalPower(), voted_power);
+        uint256 voted_power = agree_power.add(disagree_power);
+        return getTotalPower().sub(voted_power);
     }
 
     /* Voting Period Function
@@ -34,20 +34,25 @@ contract TapVoting is BaseVoting {
     function closeVoting() public returns(bool){
     	super.closeVoting();
     }
+    function _snapshot() internal returns(bool){
+    //TODO: snapshot the voter's current balance to party_list
+    }
+
     function finalize() public returns(RESULT_STATE) {
         //TODO: pass the vote if yes - no - absent/n > 0
         require(period == VOTE_PERIOD.CLOSED);
 
         RESULT_STATE result = RESULT_STATE.NONE;
         uint256 agree = agree_power;
-        uint256 absent = SafeMath.safeDiv(getAbsentPower(), ABSENT_N);
-        uint256 disagree = SafeMath.safeAdd(disagree_power, absent);
+        uint256 absent = getAbsentPower().div(ABSENT_N);
+        uint256 disagree = disagree_power.add(absent);
         if(agree > disagree) {
             result = RESULT_STATE.PASSED;
         }
         else {
             result = RESULT_STATE.REJECTED;
         }
+        _snapshot();
         period = VOTE_PERIOD.FINALIZED;
         emit FinalizeVote(msg.sender, now, result);
         return result;
@@ -59,21 +64,17 @@ contract TapVoting is BaseVoting {
         require(isActivated());
         require(msg.sender != 0x0);
         require(party_list[msg.sender].state == VOTE_STATE.NONE); // can vote only once
-
-        uint256 weight = 100; // percent
-        if(isDeveloper(msg.sender) == true){
-            weight = DEV_POWER; // reducing vote power if sender is developer
-        }
-        uint256 vote_power = SafeMath.safeMul(token.getBalanceOf(msg.sender), weight);
+        uint256 weight = isDeveloper(msg.sender) ? DEV_POWER : 100; // percent
+        uint256 vote_power = token.getBalanceOf(msg.sender).mul(weight).div(100);
         if(agree) {
             party_list[msg.sender].state = VOTE_STATE.AGREE;
             party_list[msg.sender].power = vote_power;
-            agree_power = SafeMath.safeAdd(agree_power, vote_power);
+            agree_power = agree_power.add(vote_power);
         }
         else {
             party_list[msg.sender].state = VOTE_STATE.DISAGREE;
             party_list[msg.sender].power = vote_power;
-            disagree_power = SafeMath.safeAdd(disagree_power, vote_power);
+            disagree_power = disagree_power.add(vote_power);
         }
         return true;
     }
