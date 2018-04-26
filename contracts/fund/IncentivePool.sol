@@ -9,12 +9,14 @@ import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract IncentivePool is Ownable {
     using SafeMath for uint256;
+    
     ERC20 public token;
     TapVoting public tapvoting;
     mapping(uint256 => TapVoting) prevTapVotingList;
     uint256 currentTapVotingNumber;
+    mapping(uint256 => bool) switch__withdraw;
 
-    constructor(address _token) public onlyDevelopers {
+    constructor(address _token) public onlyFund {
         token = ERC20(_token);
         currentTapVotingNumber = 0;
     }
@@ -56,13 +58,14 @@ contract IncentivePool is Ownable {
         return true;
     }
 
-    function withdraw() external returns (bool) {
-
+    function withdraw() external only(address(fund)) payable returns (bool) {
+        switch__withdraw[currentTapVotingNumber] = true;
     }
     /*
     the incentivised holder should call this function directly.
     */
     function receiveIncentiveItself() public returns(bool) {
+        require(switch__withdraw[currentTapVotingNumber], "not opening incentive withdraw");
         require(!hasReceived(msg.sender), "already received incentive");
         token.transferFrom(address(this), msg.sender, getIncentiveAmountPerOne(msg.sender));
         tapvoting.party_list[account].isReceivedIncentive = true;
@@ -70,6 +73,7 @@ contract IncentivePool is Ownable {
     }
 
     function receivePrevIncentiveItself(uint256 _votingNumber) public returns(bool) {
+        require(switch__withdraw[_votingNumber], "not opening incentive withdraw");
         require(!hasPrevReceived(_votingNumber, msg.sender), "already received incentive");
         token.transferFrom(address(this), msg.sender, getPrevIncentiveAmountPerOne(_votingNumber, msg.sender));
         prevTapVotingList[_votingNumber].party_list[account].isReceivedIncentive = true;

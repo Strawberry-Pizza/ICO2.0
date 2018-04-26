@@ -2,11 +2,14 @@ pragma solidity ^0.4.23;
 
 
 contract Ownable {
-    address public owner;
-    //address[] public developers; //contains owner
     enum DEV_LEVEL {NONE, DEV, OWNER}
+    
+    address public owner;
+    address public fund_address;
+    //address[] public developers; //contains owner
     mapping(address => DEV_LEVEL) developerLevel;
 
+    bool public switch__fund_address = false;
 
     event CreateOwnership(address indexed owner_);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -25,6 +28,12 @@ contract Ownable {
     }
 
     /*MODIFIER*/
+    modifier only(address addr) {
+        require(addr != 0x0);
+        require(msg.sender == addr, "Not given address");
+        _;
+    }
+    
     modifier onlyOwner() {
         require(msg.sender == owner, "Not Owner");
         _;
@@ -37,6 +46,11 @@ contract Ownable {
 
     modifier notDevelopers() {
         require(!isDeveloper(msg.sender), "You are developer");
+        _;
+    }
+
+    modifier onlyFund() {
+        require(msg.sender == fund_address, "Not called by Fund");
         _;
     }
 
@@ -64,5 +78,10 @@ contract Ownable {
           emit DeleteDeveloper(msg.sender, dev_addr);
           developerLevel[dev_addr] = DEV_LEVEL.NONE;
     }
-
+    function setFundAddress(address fund_addr) public onlyDevelopers {
+        require(!switch__fund_address, "setFundAddress() already called once");
+        switch__fund_address = true;
+        fund_address = fund_addr;
+        emit SetFund(fund_addr);
+    }
 }

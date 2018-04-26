@@ -54,7 +54,7 @@ contract TapVoting is BaseVoting {
         _snapshot();
         period = VOTE_PERIOD.FINALIZED;
         emit FinalizeVote(msg.sender, now, result);
-        fund.withdrawFromIncentive();
+        fund.withdrawFromFund();
         return result;
     }
     /* Personal Voting function
