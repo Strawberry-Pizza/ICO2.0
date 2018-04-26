@@ -5,7 +5,7 @@ import "../token/ERC20.sol";
 import "../vote/TapVoting.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../ownership/Ownable.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../lib/SafeMath.sol";
 
 contract IncentivePool is Ownable {
     using SafeMath for uint256;

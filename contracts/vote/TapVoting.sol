@@ -5,11 +5,11 @@ import "../fund/Fund.sol";
 
 contract TapVoting is BaseVoting {
     /* Global Variables */
-	uint256 public constant MIN_TERM = 7 days; // should be changed
-	uint256 public constant MAX_TERM = 2 weeks; // should be changed
+    uint256 public constant MIN_TERM = 7 days; // should be changed
+    uint256 public constant MAX_TERM = 2 weeks; // should be changed
     uint256 public constant DEV_POWER = 70; // percent
     /* Constructor */
-    construtor(string _votingName, address _tokenAddress, address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
+    constructor(string _votingName, address _tokenAddress, address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
     /* View Function */
     function getTotalPower() view public returns(uint256) {
         //TODO: totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
@@ -24,14 +24,14 @@ contract TapVoting is BaseVoting {
      * order: initialize -> open -> close -> finalize
      */
     function initialize(uint256 term) public returns(bool){
-    	require(term > MIN_TERM && MAX_TERM > term);
-    	super.initialize(term);
+        require(term > MIN_TERM && MAX_TERM > term);
+        super.initialize(term);
     }
     function openVoting() public returns(bool){
-    	super.openVoting();
+        super.openVoting();
     }
     function closeVoting() public returns(bool){
-    	super.closeVoting();
+        super.closeVoting();
     }
     function _snapshot() internal returns(bool){
     //TODO: snapshot the voter's current balance to party_list

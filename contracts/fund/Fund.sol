@@ -9,7 +9,7 @@ import "../token/ERC20.sol";
 import "../token/IERC20.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../ownership/Ownable.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../lib/SafeMath.sol";
 
 contract Fund is Ownable {
     /* Library and Typedefs */
@@ -109,7 +109,7 @@ contract Fund is Ownable {
     /* Tap Function */
     function increaseTap(uint256 change) external period(FUNDSTATE.WORKING) {
         tap = tap.add(change);
-        emit ChangeTap(now, tap)
+        emit ChangeTap(now, tap);
     }
     function decreaseTap(uint256 change) external period(FUNDSTATE.WORKING) {
         tap = tap.sub(change);
