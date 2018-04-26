@@ -6,12 +6,14 @@ pragma solidity ^0.4.23;
  */
 
 contract IERC20 {
-    function transfer(address _to, uint256 _value)  public returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value)  public returns (bool success);
-    function approve(address _spender, uint256 _value)  public returns (bool success);
-    function burn(uint256 _value) public returns (bool success);
+    function totalSupply() public view returns (uint256);
+    function balanceOf(address who) public view returns (uint256);
+    function allowance(address owner, address spender) public view returns (uint256);
 
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event Burn(address indexed from, uint256 value);
+    function transfer(address to, uint256 value) public returns (bool);
+    function transferFrom(address from, address to, uint256 value) public returns (bool);
+    function approve(address spender, uint256 value) public returns (bool);
+
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Transfer(address indexed from, address indexed to, uint256 value);
 }
