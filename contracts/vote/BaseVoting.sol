@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 import "../ownership/Ownable.sol";
 import "../token/ERC20.sol";
 import "../fund/Fund.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../lib/SafeMath.sol";
 
 contract BaseVoting is Ownable {
     /*Library and Typedefs*/
@@ -48,7 +48,7 @@ contract BaseVoting is Ownable {
     //function getInfo() public view returns(string); //TODO
     function getName() public view returns(string){ return votingName; }
     function getTotalParty() public view returns(uint256) {
-        return SafeMath.safeAdd(agree_power, disagree_power);
+        return agree_power.add(disagree_power);
     }
 
     /* Voting Period Function

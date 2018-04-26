@@ -58,8 +58,8 @@ contract ERC20 is IERC20 {
         require(_value <= balances[msg.sender]);
 
         // SafeMath.sub will throw if there is not enough balance.
-        balances[msg.sender] = balances[msg.sender].safeSub(_value);
-        balances[_to] = balances[_to].safeAdd(_value);
+        balances[msg.sender] = balances[msg.sender].sub(_value);
+        balances[_to] = balances[_to].add(_value);
         emit Transfer(msg.sender, _to, _value);
         return true;
     }
@@ -78,9 +78,9 @@ contract ERC20 is IERC20 {
         require(balances[_from] >= _value, "Not Enough Value");
         require(balances[_to] + _value > balances[_to], "OverFlow!");
         require(_value <= allowed[_from][msg.sender], "over allowance");
-        balances[_from] = balances[_from].safeSub(_value);    // Subtract from the sender
-        balances[_to] = balances[_to].safeAdd(_value);    // Add the same to the recipient
-        allowed[_from][msg.sender] = allowed[_from][msg.sender].safeSub(_value);
+        balances[_from] = balances[_from].sub(_value);    // Subtract from the sender
+        balances[_to] = balances[_to].add(_value);    // Add the same to the recipient
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
         emit Transfer(_from, _to, _value);
         return true;
     }

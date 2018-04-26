@@ -91,10 +91,10 @@ contract TapVoting is BaseVoting {
         else { revoke_list[msg.sender] = 1; }
         //subtract the count that sender voted before
         if(party_list[msg.sender].state == VOTE_STATE.AGREE){
-            agree_power = SafeMath.safeSub(agree_power, vote_power);
+            agree_power = agree_power.sub(vote_power);
         }
         else if(party_list[msg.sender].state == VOTE_STATE.DISAGREE) {
-            disagree_power = SafeMath.safeSub(disagree_power, vote_power);
+            disagree_power = disagree_power.sub(vote_power);
         }
         //change the voter's state to NONE.
         party_list[msg.sender].state = VOTE_STATE.NONE;

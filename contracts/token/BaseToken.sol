@@ -11,7 +11,7 @@ contract BaseToken is ERC20 {
 
     // functions which increase/decrease approval
     function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
-        allowed[msg.sender][_spender] = allowed[msg.sender][_spender].safeAdd(_addedValue);
+        allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
@@ -20,7 +20,7 @@ contract BaseToken is ERC20 {
         if (_subtractedValue > oldValue) {
             allowed[msg.sender][_spender] = 0;
         } else {
-            allowed[msg.sender][_spender] = oldValue.safeSub(_subtractedValue);
+            allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
         }
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
@@ -39,15 +39,15 @@ contract BaseToken is ERC20 {
         require(_value <= allowed[_from][msg.sender]);
         // Should https://github.com/OpenZeppelin/zeppelin-solidity/issues/707 be accepted,
         // this function needs to emit an event with the updated approval.
-        allowed[_from][msg.sender] = allowed[_from][msg.sender].safeSub(_value);
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
         _burn(_from, _value);
     }
 
     function _burn(address _who, uint256 _value) internal{
         require(_value > 0);
         require(balances[_who] >= _value, "Not Enough Value");
-        balances[_who] = balances[_who].safeSub(_value);    // Subtract from the sender
-        totalSupply_ = totalSupply_.safeSub(_value);     // Updates totalSupply
+        balances[_who] = balances[_who].sub(_value);    // Subtract from the sender
+        totalSupply_ = totalSupply_.sub(_value);     // Updates totalSupply
         emit Burn(_who, _value);
         emit Transfer(_who, address(0), _value);
     }
