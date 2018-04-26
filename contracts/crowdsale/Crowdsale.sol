@@ -70,15 +70,15 @@ contract Crowdsale is Ownable {
     //event GoalReached(uint256 endtime, uint256 total_amount);
     /* Modifiers */
     modifier isSalePreparing(){
-        require(mCurrentState == STATE.PREPARE);
+        require(mCurrentState == STATE.PREPARE, "Not Preparing");
         _;
     }
     modifier isSaleActive() {
-        require(mCurrentState == STATE.ACTIVE);
+        require(mCurrentState == STATE.ACTIVE, "Not Active");
         _;
     }
     modifier isSaleFinished(){
-        require(mCurrentState == STATE.FINISHED);
+        require(mCurrentState == STATE.FINISHED, "Not Finished");
         _;
     }
     /* Constructor */
@@ -129,7 +129,7 @@ contract Crowdsale is Ownable {
         }
         return sum;
     }
-    function getCurrentSate() view public returns(string){
+    function getCurrentSate() view external returns(string){
         if(mCurrentState == STATE.PREPARING){
             return "PREPARING";
         } else if(mCurrentState == STATE.ACTIVE){
@@ -148,8 +148,11 @@ contract Crowdsale is Ownable {
         require(now >= SALE_START_TIME && now <= SALE_END_TIME, "Worng Time");
         mCurrentState = STATE.ACTIVE;
     }
-    function finishSale() public onlyOwner isSaleActive{
+    function _finishSale() private isSaleActive{
         mCurrentState = STATE.FINISHED;
+    }
+    function finalizeSale() public onlyOwner isSaleFinished {
+        //do finalizing
     }
     // get current rate including the dicount percentage
     function getRate() public view returns (uint){
@@ -160,16 +163,22 @@ contract Crowdsale is Ownable {
             return rate.safeMul(100).safeDiv(100 - mCurrentDiscountPerc);
         }
     }
+    // calculate next cap
+    // Override this with custom calculation
+    function getNextCap() public view returns(uint){
+        require(mCurrentDiscountPerc > 0, "No Discount Any More");
+        return HARD_CAP.safeMul(5 - mCurrentDiscountPerc/5).safeDiv(8);
+    } 
     // function which checks the amount would be over next cap
     function isOver(uint _weiAmount) public view returns(bool){
         if(mCurrentDiscountPerc == 0){
-            if(address(this).balance.safeAdd(_weiAmount) > HARD_CAP){
+            if(address(this).balance.safeAdd(_weiAmount) >= HARD_CAP){
                 return true;
             } else{
                 return false;
             }
         }
-        if(address(this).balance.safeAdd(_weiAmount) > HARD_CAP.safeMul(5 - mCurrentDiscountPerc/5).safeDiv(8)){
+        if(address(this).balance.safeAdd(_weiAmount) >= getNextCap()){
             return true;
         } else{
             return false;
@@ -178,16 +187,16 @@ contract Crowdsale is Ownable {
     //check the percentage of locked tokens filled;
     function isLockFilled() public view returns(bool){
         uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.DEV);
-        if(currentLockedAmount < mToken.totalSupply.safeDiv(100).safeMul(DEV_TOKEN_PERC)){
-            revert("Developers Not Filled : "+mToken.totalSupply.safeDiv(100).safeMul(DEV_TOKEN_PERC).safeSub(currentLockedAmount));
+        if(currentLockedAmount < mToken.totalSupply().safeDiv(100).safeMul(DEV_TOKEN_PERC)){
+            revert("Developers Not Filled : "+mToken.totalSupply().safeDiv(100).safeMul(DEV_TOKEN_PERC).safeSub(currentLockedAmount));
         }
         currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.ADV);
-        if(currentLockedAmount < mToken.totalSupply.safeDiv(100).safeMul(ADV_TOKEN_PERC)){
-            revert("Advisors Not Filled : "+mToken.totalSupply.safeDiv(100).safeMul(ADV_TOKEN_PERC).safeSub(currentLockedAmount));
+        if(currentLockedAmount < mToken.totalSupply().safeDiv(100).safeMul(ADV_TOKEN_PERC)){
+            revert("Advisors Not Filled : "+mToken.totalSupply().safeDiv(100).safeMul(ADV_TOKEN_PERC).safeSub(currentLockedAmount));
         }
         currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.PRIV);
-        if(currentLockedAmount < mToken.totalSupply.safeDiv(100).safeMul(PRIV_TOKEN_PERC)){
-            revert("PrivateSale Not Filled : "+mToken.totalSupply.safeDiv(100).safeMul(PRIV_TOKEN_PERC).safeSub(currentLockedAmount));
+        if(currentLockedAmount < mToken.totalSupply().safeDiv(100).safeMul(PRIV_TOKEN_PERC)){
+            revert("PrivateSale Not Filled : "+mToken.totalSupply().safeDiv(100).safeMul(PRIV_TOKEN_PERC).safeSub(currentLockedAmount));
         }
         return true;
     }
@@ -212,13 +221,13 @@ contract Crowdsale is Ownable {
             uint ether2;
             if(mCurrentDiscountPerc > 0){
                 // When discount rate should be changed
-                ether2 = address(this).balance.safeAdd(weiAmount).safeSub(HARD_CAP.safeMul(5 - mCurrentDiscountPerc/5).safeDiv(8));
+                ether2 = address(this).balance.safeAdd(weiAmount).safeSub(getNextCap()); //(balance + weiAmount) - NEXT_CAP
                 ether1 = weiAmount.safeSub(ether2);
                 tokens = getTokenAmount(ether1);
                 send_token_success = mToken.transfer(_beneficiary, tokens);
                 emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens, send_token_success);
 
-                mCurrentDiscountPerc = mCurrentDiscountPerc.safeSub(5);
+                mCurrentDiscountPerc = mCurrentDiscountPerc.safeSub(5); // Update discount percentage
                 uint additionalTokens = getTokenAmount(ether2);
                 send_token_success = mToken.transfer(_beneficiary, additionalTokens);
                 emit TokenPurchase(msg.sender, _beneficiary, ether2, additionalTokens, send_token_success);
@@ -231,23 +240,25 @@ contract Crowdsale is Ownable {
 
                 send_token_success = mToken.transfer(_beneficiary, tokens);
                 emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens, send_token_success);
-                msg.sender.transfer(ether2);
+                msg.sender.transfer(ether2); //pay back
                 emit EtherChanges(msg.sender, ether2);
-                get_ether_success = forwardFunds(ether1);
+                get_ether_success = _forwardFunds(ether1);
                 emit StoreEtherToWallet(msg.sender, address(mFund), ether1, tokens, get_ether_success);
+                //add to map
                 if(mUserContributed[_beneficiary] > 0){
                     mUserContributed[_beneficiary] = mUserContributed[_beneficiary].safeAdd(tokens);
                 } else{
                     mUserContributed[_beneficiary] = tokens;
                     mUserContributedIndex.push(_beneficiary);
                 }
+                _finishSale();
                 //finalize CrowdSale
                 return;
             } else{
                 revert("DiscountRate should be positive");
             }
         }
-        get_ether_success = forwardFunds(weiAmount);
+        get_ether_success = _forwardFunds(weiAmount);
         emit StoreEtherToWallet(msg.sender, address(mFund), weiAmount, tokens, get_ether_success);
         //add to map
         if(mUserContributed[_beneficiary] > 0){
@@ -260,15 +271,15 @@ contract Crowdsale is Ownable {
     
     //setting vesting token address only once
     function setVestingTokens(address _vestingTokensAddress) public onlyOwner isSalePreparing {
-        require(mVestingTokens == address(0));
+        require(mVestingTokens == address(0)); //only once
         mVestingTokens = VestingTokens(_vestingTokensAddress);
     }
     //add developers, advisors, privateSale
     //check if it exceeds percentage
     function addToDevelopers(address _address, uint _amount) public onlyOwner{
-        uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.DEV);
-        require(currentLockedAmount.safeAdd(_amount) <= mToken.totalSupply.safeDi(v100).safeMul(DEV_TOKEN_PERC), "Over!");
         require(_address != address(0) && _amount > 0);
+        uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.DEV);
+        require(currentLockedAmount.safeAdd(_amount) <= mToken.totalSupply().safeDiv(100).safeMul(DEV_TOKEN_PERC), "Over!");
         if(mDevelopers[_address] > 0){
             mDevelopers[_address] = mDevelopers[_address].safeAdd(_amount);
         } else{
@@ -277,9 +288,9 @@ contract Crowdsale is Ownable {
         }
     }
     function addToAdvisors(address _address, uint _amount) public onlyOwner{
-        uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.ADV);
-        require(currentLockedAmount.safeAdd(_amount) <= mToken.totalSupply.safeDi(v100).safeMul(ADV_TOKEN_PERC), "Over!");
         require(_address != address(0) && _amount > 0);
+        uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.ADV);
+        require(currentLockedAmount.safeAdd(_amount) <= mToken.totalSupply().safeDiv(100).safeMul(ADV_TOKEN_PERC), "Over!");
         if(mAdvisors[_address] > 0){
             mAdvisors[_address] = mAdvisors[_address].safeAdd(_amount);
         } else{
@@ -288,9 +299,9 @@ contract Crowdsale is Ownable {
         }
     }
     function addToPrivateSale(address _address, uint _amount) public onlyOwner{
-        uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.PRIV);
-        require(currentLockedAmount.safeAdd(_amount) <= mToken.totalSupply.safeDi(v100).safeMul(PRIV_TOKEN_PERC), "Over!");
         require(_address != address(0) && _amount > 0);
+        uint currentLockedAmount = getLockedAmount(VestingTokens.LOCK_TYPE.PRIV);
+        require(currentLockedAmount.safeAdd(_amount) <= mToken.totalSupply().safeDiv(100).safeMul(PRIV_TOKEN_PERC), "Over!");
         if(mPrivateSale[_address] > 0){
             mPrivateSale[_address] = mPrivateSale[_address].safeAdd(_amount);
         } else{
@@ -300,7 +311,7 @@ contract Crowdsale is Ownable {
     }
 
     // call after finalize, only call once
-    function lockup() private {
+    function _lockup() private {
         //check crowdsale ended
         uint i = 0;
         for (i = 0; i < mPrivateSaleIndex.length; i++) {
@@ -325,12 +336,12 @@ contract Crowdsale is Ownable {
             );
         }
         //send Vesting tokens to VestingTokens.sol
-        token.transfer(mVestingTokens, mToken.totalSupply.safeDiv(v100).safeMul(DEV_TOKEN_PERC + ADV_TOKEN_PERC + PRIV_TOKEN_PERC));
+        token.transfer(mVestingTokens, mToken.totalSupply().safeDiv(100).safeMul(DEV_TOKEN_PERC + ADV_TOKEN_PERC + PRIV_TOKEN_PERC));
     }
 
     // send ether to the fund collection wallet
     // override to create custom fund forwarding mechanisms
-    function forwardFunds(uint wei_amount) private returns (bool){
+    function _forwardFunds(uint wei_amount) private returns (bool){
         require(msg.value == wei_amount);
         address(mFund).transfer(msg.value);
         return true;
@@ -338,8 +349,7 @@ contract Crowdsale is Ownable {
     function _dividePool() internal onlyOwner {
         mFund.dividePoolAfterSale();
     }
-    function finalizeFunds() public onlyOwner{
-        require(hasEnded());
+    function finalizeFunds() public onlyOwner isSaleFinished{
         mFund.finalizeSale();
         _dividePool();
         //close sale

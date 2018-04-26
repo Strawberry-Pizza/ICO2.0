@@ -11,43 +11,63 @@ contract ERC20 is IERC20 {
     string public name;
     string public symbol;
     uint8 public decimals;
-    uint256 public totalSupply;
-    mapping (address => uint256) public balanceOf;
-    mapping (address => mapping (address => uint256)) public allowance;
+    uint256 totalSupply_;
+    mapping(address => uint256) balances;
+    mapping (address => mapping (address => uint256)) internal allowed;
+
     address public owner;
-    /* Error Messages */
-    string constant ERROR_NOT_ENOUGH = "Not Enough Value";
 
     /* Constructor */
     constructor(
         uint256 initialSupply,
-        uint8 decimals_,
-        string name_,
-        string symbol_
+        uint8 _decimals,
+        string _name,
+        string _symbol
         ) public {
-        totalSupply = initialSupply; // Update total supply
-        decimals = decimals_;     // Amount of decimals for display purposes
-        name = name_;    // Set the name for display purposes
-        symbol = symbol_;  // Set the symbol for display purposes
+        totalSupply_ = initialSupply; // Update total supply
+        decimals = _decimals;     // Amount of decimals for display purposes
+        name = _name;    // Set the name for display purposes
+        symbol = _symbol;  // Set the symbol for display purposes
         owner = msg.sender;
-        balanceOf[owner] = totalSupply; //set inital owner
+        balances[owner] = totalSupply_; //set inital owner
     }
     //we can view public variables without view function
     /* Functions */
-    function transfer(address _to, uint256 _value) public returns (bool success) {
-        require(_to != 0x0);                               // Prevent transfer to 0x0 address. Use burn() instead
-        require(_value > 0);
-        require(balanceOf[msg.sender] >= _value, ERROR_NOT_ENOUGH);
-        require(balanceOf[_to] + _value > balanceOf[_to], "OverFlow!");
-        balanceOf[msg.sender] = balanceOf[msg.sender].safeSub(_value);                     // Subtract from the sender
-        balanceOf[_to] = balanceOf[_to].safeAdd(_value);                            // Add the same to the recipient
-        emit Transfer(msg.sender, _to, _value);                   // Notify anyone listening that this transfer took place
+    function totalSupply() public view returns (uint256) {
+        return totalSupply_;
+    }
+    /**
+    * @dev Gets the balance of the specified address.
+    * @param _owner The address to query the the balance of.
+    * @return An uint256 representing the amount owned by the passed address.
+    */
+    function balanceOf(address _owner) public view returns (uint256 balance) {
+        return balances[_owner];
+    }
+    function allowance(address _owner, address _spender) public view returns (uint256) {
+        return allowed[_owner][_spender];
+    }
+
+    /**
+    * @dev transfer token for a specified address
+    * @param _to The address to transfer to.
+    * @param _value The amount to be transferred.
+    */
+    function transfer(address _to, uint256 _value) public returns (bool) {
+        require(_to != address(0));
+        require(_value <= balances[msg.sender]);
+
+        // SafeMath.sub will throw if there is not enough balance.
+        balances[msg.sender] = balances[msg.sender].safeSub(_value);
+        balances[_to] = balances[_to].safeAdd(_value);
+        emit Transfer(msg.sender, _to, _value);
         return true;
     }
+
     // Allow another contract to spend some tokens in your behalf
     function approve(address _spender, uint256 _value) public returns (bool success) {
         require(_value > 0);
-        allowance[msg.sender][_spender] = _value;
+        allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         return true;
     }
@@ -55,21 +75,13 @@ contract ERC20 is IERC20 {
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
         require(_to != address(0));     // Prevent transfer to 0x0 address. Use burn() instead
         require(_value > 0);
-        require(balanceOf[_from] >= _value, ERROR_NOT_ENOUGH);
-        require(balanceOf[_to] + _value > balanceOf[_to], "OverFlow!");
-        require(_value <= allowance[_from][msg.sender], "over allowance");
-        balanceOf[_from] = balanceOf[_from].safeSub(_value);    // Subtract from the sender
-        balanceOf[_to] = balanceOf[_to].safeAdd(_value);                             // Add the same to the recipient
-        allowance[_from][msg.sender] = allowance[_from][msg.sender].safeSub(_value);
+        require(balances[_from] >= _value, "Not Enough Value");
+        require(balances[_to] + _value > balances[_to], "OverFlow!");
+        require(_value <= allowed[_from][msg.sender], "over allowance");
+        balances[_from] = balances[_from].safeSub(_value);    // Subtract from the sender
+        balances[_to] = balances[_to].safeAdd(_value);    // Add the same to the recipient
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].safeSub(_value);
         emit Transfer(_from, _to, _value);
-        return true;
-    }
-    function burn(uint256 _value) public returns (bool success) {
-        require(_value > 0);
-        require(balanceOf[msg.sender] >= _value, ERROR_NOT_ENOUGH);
-        balanceOf[msg.sender] = balanceOf[msg.sender].safeSub(_value);    // Subtract from the sender
-        totalSupply = totalSupply.safeSub(_value);     // Updates totalSupply
-        emit Burn(msg.sender, _value);
         return true;
     }
 }

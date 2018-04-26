@@ -21,8 +21,9 @@ contract LockedTokens {
     address public mCrowdsaleAddress;
     mapping(address => Tokens[]) public mWalletTokens;
 
-    event TokensUnlocked(address _to, uint256 _value);
-    
+    event TokensLocked(address indexed _to, uint256 _value, uint256 _lockEndTime);
+    event TokensUnlocked(address indexed _to, uint256 _value);
+
     /**
      * @dev LockedTokens constructor
      * @param _token ERC20 compatible token contract
@@ -42,6 +43,7 @@ contract LockedTokens {
     function addTokens(address _to, uint256 _amount, uint256 _lockEndTime) internal {
         require(msg.sender == mCrowdsaleAddress);
         mWalletTokens[_to].push(Tokens({amount: _amount, lockEndTime: _lockEndTime, released: false}));
+        emit TokensLocked(_to, _amount, _lockEndTime);
     }
 
     /**
