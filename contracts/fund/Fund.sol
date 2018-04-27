@@ -41,7 +41,7 @@ contract Fund is Ownable {
 
     /* Modifiers */
     modifier period(FUNDSTATE _state) {
-        require(state == _state, "Different Period");
+        require(state == _state, "Current Period : " + state);
         _;
     }
 

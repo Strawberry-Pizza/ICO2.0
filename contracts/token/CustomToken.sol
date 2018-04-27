@@ -6,16 +6,12 @@ import "./BaseToken.sol";
 import "../ownership/Ownable.sol";
 
 contract CustomToken is BaseToken{
-	constructor(
-        uint256 _initialSupply,
-        uint8 _decimals,
-        string _name,
-        string _symbol
-        ) public {
-        totalSupply_ = _initialSupply;                        // Update total supply
-        decimals = _decimals;                            // Amount of decimals for display purposes
-        name = _name;                                   // Set the name for display purposes
-        symbol = _symbol;                               // Set the symbol for display purposes
-        owner = msg.sender;
+	constructor() public {
+        decimals = 18;     // Amount of decimals for display purposes
+        name = "CUSTOM";    // Set the name for display purposes
+        symbol = "CTM";        // Set the symbol for display purposes
+        totalSupply_ = 100 * (1000 ** 3) * (10**uint256(decimals));    // Update total supply, 100 billion tokens
+        balances[msg.sender] = totalSupply_;
+        emit Transfer(0x0, msg.sender, totalSupply_);
     }
 }
