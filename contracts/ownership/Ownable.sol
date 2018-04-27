@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 
 contract Ownable {
     enum DEV_LEVEL {NONE, DEV, OWNER}
-    
+
     address public owner;
     address public fund_address;
     //address[] public developers; //contains owner
@@ -33,7 +33,7 @@ contract Ownable {
         require(msg.sender == addr, "Not given address");
         _;
     }
-    
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Not Owner");
         _;

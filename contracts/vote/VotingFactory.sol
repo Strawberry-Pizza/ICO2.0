@@ -24,6 +24,8 @@ contract VotingFactory is Ownable {
     IERC20 public token;
     Fund public fund;
     mapping(string => voteInfo) voteList; // {vote name => {voteAddress, voteType}}
+    RefundVoting public refundvoting;
+    bool public switch__isTapVotingOpened = false;
 
     /* Events */
     event CreateNewVote(address indexed vote_account, string indexed name, VOTE_TYPE type_);
@@ -45,15 +47,16 @@ contract VotingFactory is Ownable {
     function newVoting(string _votingName, VOTE_TYPE vote_type, uint256 term) public returns(address) {
         require(isVoteExist(_votingName));
         require(vote_type != VOTE_TYPE.NONE);
-        if(vote_type == VOTE_TYPE.REFUND) {
-            RefundVoting v_ref = new RefundVoting(_votingName, address(token), address(fund));
-            v_ref.initialize(term);
-            emit CreateNewVote(address(v_ref), _votingName, vote_type);
+        if(vote_type == VOTE_TYPE.REFUND && address(refundvoting) == 0x0) {
+            refundvoting = new RefundVoting(_votingName, address(token), address(fund));
+            refundvoting.initialize(term);
+            emit CreateNewVote(address(refundvoting), _votingName, vote_type);
             return address(v_ref);
         }
-        if(vote_type == VOTE_TYPE.TAP) {
+        if(vote_type == VOTE_TYPE.TAP && switch__isTapVotingOpened == false) {
             TapVoting v_tap = new TapVoting(_votingName, address(token), address(fund));
             v_tap.initialize(term);
+            switch__isTapVotingOpened = true;
             emit CreateNewVote(address(v_tap), _votingName, vote_type);
             return address(v_tap);
         }
@@ -65,15 +68,15 @@ contract VotingFactory is Ownable {
         require(isVoteExist(_votingName));
         require(voteList[_votingName].voteAddress == vote_account);
 
-        if(voteList[_votingName].voteType == VOTE_TYPE.REFUND) {
-            RefundVoting v_ref = RefundVoting(vote_account);
+        if(voteList[_votingName].voteType == VOTE_TYPE.REFUND && address(refundvoting) != 0x0) {
             emit DestroyVote(vote_account, _votingName, voteList[_votingName].voteType);
-            v_ref.destroy();
+            refundvoting.destroy();
         }
-        else if(voteList[_votingName].voteType == VOTE_TYPE.TAP) {
+        else if(voteList[_votingName].voteType == VOTE_TYPE.TAP && switch__isTapVotingOpened == true) {
            TapVoting v_tap = TapVoting(vote_account);
            emit DestroyVote(vote_account, _votingName, voteList[_votingName].voteType);
            v_tap.destroy();
+           switch__isTapVotingOpened = false;
         }
         return true;
     }

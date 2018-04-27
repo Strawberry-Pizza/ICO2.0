@@ -1,3 +1,6 @@
+/*
+// deprecated
+
 pragma solidity ^0.4.23;
 
 import "../token/ERC20.sol";
@@ -35,6 +38,7 @@ contract Refund is Ownable {
     }
 }
 
+*/
 
 
 

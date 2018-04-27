@@ -9,32 +9,27 @@ import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract IncentivePool is Ownable {
     using SafeMath for uint256;
-    
+
     ERC20 public token;
+    Fund private fund;
     TapVoting public tapvoting;
     mapping(uint256 => TapVoting) prevTapVotingList;
     uint256 currentTapVotingNumber;
     mapping(uint256 => bool) switch__withdraw;
 
-    constructor(address _token) public onlyFund {
+    constructor(address _token, address _fund) public onlyFund {
         token = ERC20(_token);
+        fund = Fund(_fund);
         currentTapVotingNumber = 0;
     }
 
     event ReceiveIncentive(uint256 indexed vote_number, address indexed receiver, uint256 incentive_amount);
     //TODO: must cover the previous tap voting incentive
-    function getBalance() public view returns(uint256) {
-        return this.balance;
-    }
-    function getToken() public view returns(address) {
-        return address(token);
-    }
-    function getCurrentTapVoting() public view returns(address) {
-        return address(tapvoting);
-    }
-    function getPrevTapVoting(uint256 _votingNumber) public view returns(address) {
-        return address(prevTapVotingList[_votingNumber]);
-    }
+    function getBalance() public view returns(uint256) { return this.balance; }
+    function getFund() public view returns(Fund) { return fund; }
+    function getToken() public view returns(address) { return address(token); }
+    function getCurrentTapVoting() public view returns(address) { return address(tapvoting); }
+    function getPrevTapVoting(uint256 _votingNumber) public view returns(address) { return address(prevTapVotingList[_votingNumber]); }
     function getIncentiveAmountPerOne(address account) public view returns(uint256) {
         //TODO: put the formula in this func
         uint256 token_amt = tapvoting.party_list[account].power;
@@ -67,7 +62,7 @@ contract IncentivePool is Ownable {
     function receiveIncentiveItself() public returns(bool) {
         require(switch__withdraw[currentTapVotingNumber], "not opening incentive withdraw");
         require(!hasReceived(msg.sender), "already received incentive");
-        token.transferFrom(address(this), msg.sender, getIncentiveAmountPerOne(msg.sender));
+        token.transfer(msg.sender, getIncentiveAmountPerOne(msg.sender)); // ??
         tapvoting.party_list[account].isReceivedIncentive = true;
         emit ReceiveIncentive(currentTapVotingNumber, msg.sender, getIncentiveAmountPerOne(msg.sender));
     }
@@ -75,7 +70,7 @@ contract IncentivePool is Ownable {
     function receivePrevIncentiveItself(uint256 _votingNumber) public returns(bool) {
         require(switch__withdraw[_votingNumber], "not opening incentive withdraw");
         require(!hasPrevReceived(_votingNumber, msg.sender), "already received incentive");
-        token.transferFrom(address(this), msg.sender, getPrevIncentiveAmountPerOne(_votingNumber, msg.sender));
+        token.transfer(msg.sender, getPrevIncentiveAmountPerOne(_votingNumber, msg.sender));
         prevTapVotingList[_votingNumber].party_list[account].isReceivedIncentive = true;
         emit ReceiveIncentive(_votingNumber, msg.sender, getPrevIncentiveAmountPerOne(_votingNumber, msg.sender));
     }
