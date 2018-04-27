@@ -21,6 +21,8 @@ contract BaseVoting is Ownable {
     VOTE_PERIOD period;
     ERC20 public token;
     Fund public fund;
+    address public factoryAddress;
+
     uint256 public startTime;
     uint256 public endTime;
     uint256 public agree_power = 0; // real value is divided by 100(weight)
@@ -34,12 +36,19 @@ contract BaseVoting is Ownable {
     event OpenVoting(address indexed opener, uint256 open_time);
     event CloseVoting(address indexed closer, uint256 close_time);
     event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
+    /* Modifiers */
+    modifier onlyVotingFactory() {
+        require(msg.sender == factoryAddress);
+        _;
+    }
+
     /* Constructor */
     constructor(string _votingName, address _tokenAddress, address _fundAddress) external {
         votingName = _votingName;
         token = ERC20(_tokenAddress);
         period = VOTE_PERIOD.NONE;
         fund = Fund(_fundAddress);
+        factoryAddress = msg.sender; // It should be called by only VotingFactory
     }
     /* View Function */
     function isActivated() public view returns(bool) {
@@ -92,7 +101,7 @@ contract BaseVoting is Ownable {
     /* Destroy function */
     //TODO: no need?
     // function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
-    function destroy() external onlyDevelopers returns(bool){
+    function destroy() external onlyVotingFactory returns(bool){
         require(period == VOTE_PERIOD.FINALIZED);
         selfdestruct(address(this));
         return true;
