@@ -96,7 +96,18 @@ contract BaseVoting is Ownable {
     /* Personal Voting function
      * vote, revoke
      */
-    function vote(bool agree) public returns(bool) { return false; }
+    function vote(bool agree) public returns(bool) {    
+        require(isActivated());
+        require(msg.sender != 0x0);
+        require(party_dict[msg.sender].state == VOTE_STATE.NONE); // can vote only once
+        if(agree) {
+            party_dict[msg.sender].state = VOTE_STATE.AGREE;
+        }
+        else {
+            party_dict[msg.sender].state = VOTE_STATE.DISAGREE;
+        }
+        return true;
+    }
     //TODO: not implemented yet
     function revoke() public returns(bool) { return false; }
 

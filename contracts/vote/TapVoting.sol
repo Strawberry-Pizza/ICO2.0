@@ -9,6 +9,7 @@ contract TapVoting is BaseVoting {
 	uint256 public constant MAX_TERM = 2 weeks; // should be changed
     uint256 public constant DEV_POWER = 70; // percent
     uint256 public constant DEV_PERC = 14; // percent
+    uint256 public constant PUBLIC_TOKEN_PERC = 65; //FIXIT: it should be changed in every tap voting term and it is NOT constant, it means totalSupply() - locked_token - reserve_token
     /* Constructor */
     construtor(string _votingName, address _tokenAddress, address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
     /* View Function */
@@ -27,6 +28,15 @@ contract TapVoting is BaseVoting {
     function getAbsentPower() view public returns(uint256) {
         uint256 voted_power = agree_power.add(disagree_power);
         return getTotalPower().sub(voted_power);
+    }
+    function getParticipatingPerc() view public returns(uint256) {
+        uint256 total_token = token.totalSupply().mul(PUBLIC_TOKEN_PERC).div(100);
+        uint256 participating_token = getAgreePower().add(getDisagreePower());
+        return participating_token.mul(100).div(total_token);
+    }
+    function getMinVotingPerc() view public returns(uint256) {
+        //TODO: it is affected by the previous tap voting's participating rate.
+        return 20;
     }
 
     /* Voting Period Function
@@ -63,6 +73,7 @@ contract TapVoting is BaseVoting {
         RESULT_STATE result = RESULT_STATE.NONE;
         
         if(!_snapshot()){ revert("failed to snapshot in tap finalize."); }
+        if(getParticipatingPerc() < getMinVotingPerc()){ revert("It cannot satisfy minimum voting rate."); }
         if(getAgreePower() > getDisagreePower()) {
             result = RESULT_STATE.PASSED;
         }
@@ -78,16 +89,7 @@ contract TapVoting is BaseVoting {
      * vote, revoke
      */
     function vote(bool agree) public returns(bool) {
-        require(isActivated());
-        require(msg.sender != 0x0);
-        require(party_dict[msg.sender].state == VOTE_STATE.NONE); // can vote only once
-        if(agree) {
-            party_dict[msg.sender].state = VOTE_STATE.AGREE;
-        }
-        else {
-            party_dict[msg.sender].state = VOTE_STATE.DISAGREE;
-        }
-        return true;
+        return super.vote(agree);
     }
 
     function revoke() public returns(bool) {
