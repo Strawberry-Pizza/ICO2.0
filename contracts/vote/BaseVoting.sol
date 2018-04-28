@@ -29,7 +29,9 @@ contract BaseVoting is Ownable {
     uint256 public disagree_power = 0;
     uint256 public absent_power; //how can we count the number of whole member?
     uint256 public constant ABSENT_N = 6;
-    mapping(address=>vote_receipt) public party_list;
+    mapping(address=>vote_receipt) public party_dict;
+    mapping(uint256=>address) public party_list;
+    uint256 public index_party_list = 0;
     mapping(address=>uint256) public revoke_list; //account=>revoke count
     /* Events */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
