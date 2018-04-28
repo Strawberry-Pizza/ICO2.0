@@ -32,10 +32,12 @@ contract Fund is Ownable {
     uint256 public tap;
     uint256 public retapVotingStartTime; // term that the new tap voting is able to restart
     uint256 public lastWithdrawTime;
-    bool private isDividePoolAfterSale = false;
+    bool private switch__dividePoolAfterSale = false;
+    bool private switch__lock_fund = false;
 
     Crowdsale public crowdsale;
     VotingFactory public votingFactory;
+    RefundVoting public refundVoting;
     ReservePool public res_pool;
     IncentivePool public inc_pool;
 
@@ -45,9 +47,20 @@ contract Fund is Ownable {
         _;
     }
 
+    modifier unlock {
+        require(!switch__lock_fund, "fund has locked");
+        _;
+    }
+
+    modifier lock {
+        require(switch__lock_fund, "It is only executable when fund is locked");
+        _;
+    }
+
     /* Events */
-    event CreateFund(address indexed token_address, address indexed team_wallet, address creator);
+    event CreateFund(address indexed token_address, address indexed team_wallet, address indexed fund_addr);
     event SetVotingFactoryAddress(address indexed voting_factory_addr, address indexed setter);
+    event SetCrowdsaleAddress(address indexed voting_factory_addr, address indexed setter);
     event ChangeFundState(uint256 indexed time, FUNDSTATE indexed changed_state);
     event ChangeTap(uint256 indexed time, uint256 indexed changed_tap);
     event DividePoolAfterSale(address indexed fund_addr, address indexed inc_addr, address indexed res_addr);
@@ -57,15 +70,17 @@ contract Fund is Ownable {
     //add more
 
     /* Constructor */
-    constructor(address _token, address _teamWallet, address _crowdsale) public onlyDevelopers {
+    constructor(address _token, address _teamWallet) public onlyDevelopers {
+        require(_token != 0x0);
+        require(_teamWallet != 0x0);
         state = FUNDSTATE.BEFORE_SALE;
+        setFundAddress(address(this)); // set fund address in Ownable.fundAddress
         token = IERC20(_token);
         teamWallet = _teamWallet;
-        crowdsale = Crowdsale(_crowdsale);
-        inc_pool = new IncentivePool();
-        res_pool = new ReservePool();
+        inc_pool = new IncentivePool(_token, address(this));
+        res_pool = new ReservePool(_token, address(this), _teamWallet);
         tap = INITIAL_TAP;
-        emit CreateFund(token, teamWallet, msg.sender);
+        emit CreateFund(token, teamWallet, address(this));
     }
 
     /* View Function */
@@ -81,74 +96,90 @@ contract Fund is Ownable {
     function getIncentiveAddress() view public returns(address) { return address(inc_pool); }
     function getReserveAddress() view public returns(address) { return address(res_pool); }
     function getWithdrawable() view public returns(uint256) { return tap*(now-lastWithdrawTime); }
+    function getLocked() view public returns(uint256) { return switch__lock_fund; }
 
     /* Set Function */
-    function setVotingFactoryAddress(address _votingfacaddr) external onlyDevelopers{
+    function setVotingFactoryAddress(address _votingfacaddr) external onlyDevelopers unlock returns(bool) {
         require(_votingfacaddr != 0x0);
         votingFactoryAddress = _votingfacaddr;
         emit SetVotingFactoryAddress(_votingfacaddr, msg.sender);
+        return true;
+    }
+    function setCrowdsaleAddress(address _crowdsale) external onlyDevelopers unlock returns(bool) {
+        require(_crowdsale != 0x0);
+        crowdsale = _crowdsale;
+        emit SetCrowdsaleAddress(_crowdsale, msg.sender);
+        return true;
     }
 
     /* Fallback Function */
     function () external payable {}
 
     /* State Function */
-    function startSale() external period(FUNDSTATE.BEFORE_SALE) {
+    function startSale() external period(FUNDSTATE.BEFORE_SALE) only(address(crowdsale)) {
         state = FUNDSTATE.CROWDSALE;
         emit ChangeFundState(now, state);
     }
-    function finalizeSale() external period(FUNDSTATE.CROWDSALE) {
+    function finalizeSale() external period(FUNDSTATE.CROWDSALE) only(address(crowdsale)) {
         state = FUNDSTATE.WORKING;
         emit ChangeFundState(now, state);
     }
-    function lockFund() external period(FUNDSTATE.WORKING) {
+    function lockFund() external period(FUNDSTATE.WORKING) only(address(refundVoting)) unlock {
         state = FUNDSTATE.LOCKED;
+        switch__lock_fund = true;
         emit ChangeFundState(now, state);
     }
 
     /* Tap Function */
-    function increaseTap(uint256 change) external period(FUNDSTATE.WORKING) {
+    function increaseTap(uint256 change) external period(FUNDSTATE.WORKING) only(address(tapVoting)) unlock {
         tap = tap.add(change);
         emit ChangeTap(now, tap);
     }
-    function decreaseTap(uint256 change) external period(FUNDSTATE.WORKING) {
+    function decreaseTap(uint256 change) external period(FUNDSTATE.WORKING) only(address(tapVoting)) unlock {
         tap = tap.sub(change);
         emit ChangeTap(now, tap);
     }
 
     /* Withdraw Function */
-    function dividePoolAfterSale(uint256[3] asset_percent) external period(FUNDSTATE.WORKING) payable {
+    function dividePoolAfterSale(uint256[3] asset_percent) external period(FUNDSTATE.WORKING) only(address(crowdsale)) {
         //asset_percent = [public, incentive, reserve] = total 100
-        require(!isDividePoolAfterSale);
-        isDividePoolAfterSale = true; // this function is called only once.
-        address(inc_pool).transfer(this.balance.mul(asset_percent[1]).div(100));
-        address(res_pool).transfer(this.balance.mul(asset_percent[2]).div(100));
+        require(!switch__dividePoolAfterSale);
+        switch__dividePoolAfterSale = true; // this function is called only once.
+        token.transfer(address(inc_pool), this.balance.mul(asset_percent[1]).div(100));
+        token.transfer(address(res_pool), this.balance.mul(asset_percent[2]).div(100));
         emit DividePoolAfterSale(address(this), address(inc_pool), address(res_pool));
     }
-    function withdrawFromFund() external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
+    function withdrawFromFund() external period(FUNDSTATE.WORKING) only(address(tapVoting)) unlock payable returns(bool) {
         require(teamWallet != 0x0, "teamWallet has not determined.");
-        if(!teamWallet.send(getWithdrawable())) { revert(); }
-        if(!withdrawFromIncentive()) { revert(); }
-        emit withdrawFromFund(now, address(this), teamWallet);
+        require(getWithdrawable() != 0, "not enough withdrawable ETH.");
+        uint256 withdraw_amount = getWithdrawable();
+        if(!teamWallet.send(withdraw_amount)) { revert(); } //payable
+        if(!_withdrawFromIncentive(withdraw_amount)) { revert(); }
+        emit WithdrawFromFund(now, address(this), teamWallet);
         return true;
     }
-    function withdrawFromIncentive() external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
+    function _withdrawFromIncentive(uint256 withdraw_amt) internal period(FUNDSTATE.WORKING) only(address(tapVoting)) unlock returns(bool) {
         require(address(inc_pool) != 0x0, "Incentive pool has not deployed.");
-        if(!inc_pool.withdraw()) { revert(); }
-        emit withdrawFromIncentive(now, address(inc_pool), msg.sender);
+
+        if(!inc_pool.withdraw(withdraw_amt)) { revert(); }
+        emit WithdrawFromIncentive(now, address(inc_pool), msg.sender);
         return true;
     }
-    function withdrawFromReserve(uint256 weiAmount) external onlyDevelopers period(FUNDSTATE.WORKING) payable returns(bool) {
+    function withdrawFromReserve(uint256 weiAmount) external onlyDevelopers period(FUNDSTATE.WORKING) unlock returns(bool) {
         require(address(res_pool) != 0x0, "Reserve pool has not deployed.");
         require(weiAmount <= address(res_pool).balance, "Not enough balance in reserve pool.");
+
         //TODO: not implemented
         if(!res_pool.withdraw()) { revert(); }
-        emit withdrawFromReserve(now, address(res_pool), teamWallet);
+        emit WithdrawFromReserve(now, address(res_pool), teamWallet);
         return true;
     }
-
-
     /* Refund Function */
-    function refund() external period(FUNDSTATE.LOCKED) {}
+    function refund() external only(address(refundVoting)) period(FUNDSTATE.LOCKED) lock {
+    //TODO: refund the whole ETH to token holders(by airdrop)
+    //      except developers, advisors, pre-sale participants
+
+
+    }
 }
 

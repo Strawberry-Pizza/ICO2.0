@@ -21,25 +21,36 @@ contract BaseVoting is Ownable {
     VOTE_PERIOD period;
     ERC20 public token;
     Fund public fund;
+    address public factoryAddress;
+
     uint256 public startTime;
     uint256 public endTime;
     uint256 public agree_power = 0; // real value is divided by 100(weight)
     uint256 public disagree_power = 0;
     uint256 public absent_power; //how can we count the number of whole member?
     uint256 public constant ABSENT_N = 6;
-    mapping(address=>vote_receipt) public party_list;
+    mapping(address=>vote_receipt) public party_dict;
+    mapping(uint256=>address) public party_list;
+    uint256 public index_party_list = 0;
     mapping(address=>uint256) public revoke_list; //account=>revoke count
     /* Events */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
     event OpenVoting(address indexed opener, uint256 open_time);
     event CloseVoting(address indexed closer, uint256 close_time);
     event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
+    /* Modifiers */
+    modifier onlyVotingFactory() {
+        require(msg.sender == factoryAddress);
+        _;
+    }
+
     /* Constructor */
     constructor(string _votingName, address _tokenAddress, address _fundAddress) external {
         votingName = _votingName;
         token = ERC20(_tokenAddress);
         period = VOTE_PERIOD.NONE;
         fund = Fund(_fundAddress);
+        factoryAddress = msg.sender; // It should be called by only VotingFactory
     }
     /* View Function */
     function isActivated() public view returns(bool) {
@@ -85,14 +96,25 @@ contract BaseVoting is Ownable {
     /* Personal Voting function
      * vote, revoke
      */
-    function vote(bool agree) public returns(bool) { return false; }
+    function vote(bool agree) public returns(bool) {    
+        require(isActivated());
+        require(msg.sender != 0x0);
+        require(party_dict[msg.sender].state == VOTE_STATE.NONE); // can vote only once
+        if(agree) {
+            party_dict[msg.sender].state = VOTE_STATE.AGREE;
+        }
+        else {
+            party_dict[msg.sender].state = VOTE_STATE.DISAGREE;
+        }
+        return true;
+    }
     //TODO: not implemented yet
     function revoke() public returns(bool) { return false; }
 
     /* Destroy function */
     //TODO: no need?
     // function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
-    function destroy() external onlyDevelopers returns(bool){
+    function destroy() external onlyVotingFactory returns(bool){
         require(period == VOTE_PERIOD.FINALIZED);
         selfdestruct(address(this));
         return true;
