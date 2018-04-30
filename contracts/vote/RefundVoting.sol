@@ -26,7 +26,7 @@ contract RefundVoting is BaseVoting {
     function revoke() public returns (bool) {
     //TODO
     }
-    function refresh() external only(factoryAddress) returns(bool) {
+    function refresh() external onlyVotingFactory returns(bool) {
         require(now >= REFRESH_TERM.add(lastRefreshTime), "check that refund voting is in the refreshable state.");
         
         if(!_clearVariables()) { revert("cannot clear the refund voting."); }

@@ -3,10 +3,9 @@ pragma solidity ^0.4.23;
 import "../fund/Fund.sol";
 import "../token/ERC20.sol";
 import "../crowdsale/Crowdsale.sol";
-import "../ownership/Ownable.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../lib/SafeMath.sol";
 
-contract ReservePool is Ownable {
+contract ReservePool {
     using SafeMath for uint256;
 
     ERC20 public token;
@@ -18,13 +17,18 @@ contract ReservePool is Ownable {
         teamWallet = _teamWallet;
     }
 
+    modifier onlyFund(){
+        require(msg.sender == address(fund));
+        _;
+    }
+
     event ReserveWithdrawTime(uint256 indexed time, uint256 indexed amount, address indexed team_wallet);
 
     function getBalance() public view returns(uint256) { return token.BalanceOf(address(this)); }
     function getFund() public view returns(Fund) { return fund; }
     function getTokenAddress() public view returns(address) { return address(token); }
 
-    function withdraw(uint256 token_amount) external only(address(fund)) returns (bool) {
+    function withdraw(uint256 token_amount) external onlyFund returns (bool) {
         require(token_amount <= getBalance(address(this)), "balance for reservePool is not enough");
         require(teamWallet != 0x0);
         token.transfer(teamWallet, token_amount);

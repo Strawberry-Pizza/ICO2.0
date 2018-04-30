@@ -11,7 +11,10 @@ contract TapVoting is BaseVoting {
     uint256 public constant DEV_PERC = 14; // percent
     uint256 public constant PUBLIC_TOKEN_PERC = 65; //FIXIT: it should be changed in every tap voting term and it is NOT constant, it means totalSupply() - locked_token - reserve_token
     /* Constructor */
-    constructor(string _votingName, address _tokenAddress, address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
+    constructor(
+        string _votingName,
+        address _tokenAddress,
+        address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
     /* View Function */
     function getTotalPower() view public returns(uint256) {
         // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio

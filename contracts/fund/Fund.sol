@@ -70,9 +70,14 @@ contract Fund is Ownable {
     //add more
 
     /* Constructor */
-    constructor(address _token, address _teamWallet) public onlyDevelopers {
+    constructor(
+        address _token,
+        address _teamWallet,
+        address _membersAddress
+        ) public Ownable(_membersAddress) {
         require(_token != 0x0);
         require(_teamWallet != 0x0);
+        require(_membersAddress != 0x0);
         state = FUNDSTATE.BEFORE_SALE;
         setFundAddress(address(this)); // set fund address in Ownable.fundAddress
         token = IERC20(_token);

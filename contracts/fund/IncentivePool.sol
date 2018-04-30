@@ -4,10 +4,9 @@ import "../fund/Fund.sol";
 import "../token/ERC20.sol";
 import "../vote/TapVoting.sol";
 import "../crowdsale/Crowdsale.sol";
-import "../ownership/Ownable.sol";
 import "../lib/SafeMath.sol";
 
-contract IncentivePool is Ownable {
+contract IncentivePool {
     using SafeMath for uint256;
 
     uint256 public constant MIN_RECEIVABLE_TOKEN = 100; // minimum token holdings
@@ -20,7 +19,12 @@ contract IncentivePool is Ownable {
     uint256 currentTapVotingNumber;
     mapping(uint256 => bool) switch__withdraw;
 
-    constructor(address _token, address _fund) public onlyFund {
+    modifier onlyFund(){
+        require(msg.sender == address(fund));
+        _;
+    }
+
+    constructor(address _token, address _fund) public {
         token = ERC20(_token);
         fund = Fund(_fund);
         currentTapVotingNumber = 0;
@@ -60,7 +64,8 @@ contract IncentivePool is Ownable {
         return prevTapVotingList[_votingNumber].party_dict[account].isReceivedIncentive;
     }
 
-    function setTapVotingAddr(address _tapvoting) public onlyDevelopers returns(bool) {
+    //should make function on Fund.sol which calls this function
+    function setTapVotingAddr(address _tapvoting) external onlyFund returns(bool) {
         require(_tapvoting != 0x0);
         currentTapVotingNumber++;
         prevTapVotingList[currentTapVotingNumber] = TapVoting(_tapvoting);
@@ -68,7 +73,7 @@ contract IncentivePool is Ownable {
         return true;
     }
 
-    function withdraw(uint256 withdraw_by_dev) external only(address(fund)) returns (bool) {
+    function withdraw(uint256 withdraw_by_dev) external onlyFund returns (bool) {
         switch__withdraw[currentTapVotingNumber] = true;
         withdrawnByDev[currentTapVotingNumber] = withdraw_by_dev;
         return true;
