@@ -18,7 +18,8 @@ contract RefundVoting is BaseVoting {
     function initialize(uint256 term) public returns(bool) {
     	super.initialize(TERM); //fixed term
     }
-    function finalize() public returns (RESULT_STATE) {}
+    function finalize() public returns (RESULT_STATE) { 
+    }
     function vote(bool agree) public returns (bool) {
         return super.vote(agree);
     }
