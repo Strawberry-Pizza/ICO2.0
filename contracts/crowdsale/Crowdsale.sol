@@ -90,10 +90,12 @@ contract Crowdsale is Ownable, ICrowdsale{
     /* Constructor */
     constructor(
         address _tokenAddress,
-        address _fundAddress
-        ) public Ownable(msg.sender) {
+        address _fundAddress,
+        address _membersAddress
+        ) public Ownable(_membersAddress) {
         require(_fundAddress != address(0));
         require(_tokenAddress != address(0));
+        require(_membersAddress != address(0));
 
         mFund = Fund(_fundAddress);
         mToken = CustomToken(_tokenAddress);

@@ -34,9 +34,14 @@ contract VotingFactory is Ownable {
 
     /* Constructor */
     //call when Crowdsale finished
-    constructor(address _tokenAddress, address _fundAddress) public onlyDevelopers {
+    constructor(
+        address _tokenAddress,
+        address _fundAddress,
+        address _membersAddress
+        ) public Ownable(_membersAddress) {
         require(_tokenAddress != 0x0);
         require(_fundAddress != 0x0);
+        require(_membersAddress != 0x0);
 
         token = IERC20(_tokenAddress);
         fund = Fund(_fundAddress);
