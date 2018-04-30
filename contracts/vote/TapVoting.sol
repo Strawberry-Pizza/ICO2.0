@@ -14,12 +14,13 @@ contract TapVoting is BaseVoting {
     constructor(
         string _votingName,
         address _tokenAddress,
-        address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
+        address _fundAddress
+        ) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
     /* View Function */
     function getTotalPower() view public returns(uint256) {
         // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
-        uint256 ret1 = token.totalSupply().mul(uint256(100).sub(DEV_PERC)).mul(100);
-        uint256 ret2 = token.totalSupply().mul(DEV_PERC).mul(DEV_POWER);
+        uint256 ret1 = mToken.totalSupply().mul(uint256(100).sub(DEV_PERC)).mul(100);
+        uint256 ret2 = mToken.totalSupply().mul(DEV_PERC).mul(DEV_POWER);
         return ret1.add(ret2);
     }
     function getAgreePower() view public returns(uint256) {
@@ -33,7 +34,7 @@ contract TapVoting is BaseVoting {
         return getTotalPower().sub(voted_power);
     }
     function getParticipatingPerc() view public returns(uint256) {
-        uint256 total_token = token.totalSupply().mul(PUBLIC_TOKEN_PERC).div(100);
+        uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(100);
         uint256 participating_token = getAgreePower().add(getDisagreePower());
         return participating_token.mul(100).div(total_token);
     }
@@ -59,7 +60,7 @@ contract TapVoting is BaseVoting {
         //FIXIT: how to reduce the snapshot operation gas fee?
         for(uint256 i = 1; i< index_party_list.add(1); i++) {
             uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 100; // percent
-            uint256 vote_power = token.getBalanceOf(party_list[i]).mul(weight).div(100);
+            uint256 vote_power = mToken.getBalanceOf(party_list[i]).mul(weight).div(100);
             party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power 
             if(party_dict[party_list[i]].state == VOTE_STATE.AGREE) {
                 agree_power=agree_power.add(vote_power);
@@ -72,7 +73,7 @@ contract TapVoting is BaseVoting {
 
     function finalize() public returns(RESULT_STATE) {
         // pass the vote if yes - no > 0
-        require(period == VOTE_PERIOD.CLOSED);
+        require(mPeriod == VOTE_PERIOD.CLOSED);
         RESULT_STATE result = RESULT_STATE.NONE;
         
         if(!_snapshot()){ revert("failed to snapshot in tap finalize."); }
@@ -83,9 +84,9 @@ contract TapVoting is BaseVoting {
         else {
             result = RESULT_STATE.REJECTED;
         }
-        period = VOTE_PERIOD.FINALIZED;
+        mPeriod = VOTE_PERIOD.FINALIZED;
         emit FinalizeVote(msg.sender, now, result);
-        if(!fund.withdrawFromFund()){ revert("failed to withdrawFromFund in tap finalize."); }
+        if(!mFund.withdrawFromFund()){ revert("failed to withdrawFromFund in tap finalize."); }
         return result;
     }
     /* Personal Voting function

@@ -13,6 +13,10 @@ contract Ownable {
     }
 
     /*MODIFIER*/
+    modifier only(address _address){
+        require(msg.sender == _address);
+        _;
+    }
 
     modifier onlyOwner() {
         require(msg.sender == members.owner(), "Not Owner");
