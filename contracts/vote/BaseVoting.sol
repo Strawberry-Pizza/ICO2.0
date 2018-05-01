@@ -3,8 +3,9 @@ pragma solidity ^0.4.23;
 import "../token/ERC20.sol";
 import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
+import "../ownership/Ownable.sol";
 
-contract BaseVoting {
+contract BaseVoting is Ownable {
     /*Library and Typedefs*/
     using SafeMath for uint256;
     enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED}
@@ -44,7 +45,9 @@ contract BaseVoting {
     }
 
     /* Constructor */
-    constructor(string _votingName, address _tokenAddress, address _fundAddress) external {
+    constructor(string _votingName, address _tokenAddress, address _fundAddress, address _membersAddress) public Ownable(_membersAddress) {
+        //FIXIT: only by VotingFactory
+        require(_membersAddress != 0x0);
         votingName = _votingName;
         token = ERC20(_tokenAddress);
         period = VOTE_PERIOD.NONE;
@@ -60,6 +63,15 @@ contract BaseVoting {
     function getTotalParty() public view returns(uint256) {
         return agree_power.add(disagree_power);
     }
+    function readPartyDict(address account) public view returns(VOTE_STATE, uint256, bool) {
+        return (party_dict[account].state, party_dict[account].power, party_dict[account].isReceivedIncentive);
+     }
+     function writePartyDict(address account, VOTE_STATE a, uint256 b, bool c) external returns(bool) {
+         if(a != VOTE_STATE.NONE) { party_dict[account].state = a; }
+         if(b != 0) { party_dict[account].power = b; }
+         if(c != false) { party_dict[account].isReceivedIncentive = true; }
+         return true;
+     }
 
     /* Voting Period Function
      * order: initialize -> open -> close -> finalize

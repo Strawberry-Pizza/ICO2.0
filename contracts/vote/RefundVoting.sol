@@ -9,14 +9,14 @@ contract RefundVoting is BaseVoting {
 
     event RefreshRefundVoting(uint256 indexed time);
 
-    constructor(string _votingName, address _tokenAddress, address _fundAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
+    constructor(string _votingName, address _tokenAddress, address _fundAddress, address _membersAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress, _membersAddress) public {}
     
     function canRefresh() public view returns(bool) {
         return (now >= lastRefreshTime.add(REFRESH_TERM));
     }
     
     function initialize(uint256 term) public returns(bool) {
-    	super.initialize(TERM); //fixed term
+    	super.initialize(REFRESH_TERM); //fixed term
     }
     function finalize() public returns (RESULT_STATE) { 
     }

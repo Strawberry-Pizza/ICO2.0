@@ -54,13 +54,13 @@ contract VotingFactory is Ownable {
         require(isVoteExist(_votingName));
         require(vote_type != VOTE_TYPE.NONE);
         if(vote_type == VOTE_TYPE.REFUND && address(refundvoting) == 0x0) {
-            refundvoting = new RefundVoting(_votingName, address(token), address(fund));
+            refundvoting = new RefundVoting(_votingName, address(token), address(fund), address(members));
             refundvoting.initialize(term);
             emit CreateNewVote(address(refundvoting), _votingName, vote_type);
-            return address(v_ref);
+            return address(refundvoting);
         }
         if(vote_type == VOTE_TYPE.TAP && switch__isTapVotingOpened == false) {
-            tapvoting = new TapVoting(_votingName, address(token), address(fund));
+            tapvoting = new TapVoting(_votingName, address(token), address(fund), address(members));
             tapvoting.initialize(term);
             switch__isTapVotingOpened = true;
             emit CreateNewVote(address(tapvoting), _votingName, vote_type);
