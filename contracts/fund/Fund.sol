@@ -10,6 +10,7 @@ import "../token/ERC20.sol";
 import "../token/IERC20.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../ownership/Ownable.sol";
+import "../ownership/Members.sol";
 import "../vote/VotingFactory.sol";
 import "../vote/TapVoting.sol";
 import "../vote/RefundVoting.sol";

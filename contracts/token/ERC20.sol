@@ -15,6 +15,24 @@ contract ERC20 is IERC20 {
     mapping(address => uint256) balances;
     mapping (address => mapping (address => uint256)) internal allowed;
 
+	 address public owner;
+
+    /* Constructor */
+    constructor(
+        uint256 initialSupply,
+        uint8 _decimals,
+        string _name,
+        string _symbol
+        ) public {
+        totalSupply_ = initialSupply; // Update total supply
+        decimals = _decimals;     // Amount of decimals for display purposes
+        name = _name;    // Set the name for display purposes
+        symbol = _symbol;  // Set the symbol for display purposes
+        owner = msg.sender;
+        balances[owner] = totalSupply_; //set initial owner
+    }
+
+    //we can view public variables without view function
     /* Functions */
     function totalSupply() public view returns (uint256) {
         return totalSupply_;
