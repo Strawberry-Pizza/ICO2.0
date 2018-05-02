@@ -41,17 +41,17 @@ contract Members{
     }
 
     function enroll_developer(address dev_addr) public onlyOwner {
-          require(dev_addr != 0x0);
-          require(!isDeveloper(dev_addr), "It is developer");
-          emit EnrollDeveloper(msg.sender, dev_addr);
-          developerLevel[dev_addr] = DEV_LEVEL.DEV;
+        require(dev_addr != 0x0);
+        require(!isDeveloper(dev_addr), "It is developer");
+        emit EnrollDeveloper(msg.sender, dev_addr);
+        developerLevel[dev_addr] = DEV_LEVEL.DEV;
     }
 
     function delete_developer(address dev_addr) public onlyOwner {
-          require(dev_addr != 0x0);
-          require(dev_addr != owner_, "Must not be self-destruct"); // must not be self-destruct
-          require(isDeveloper(dev_addr), "Not Developers");
-          emit DeleteDeveloper(msg.sender, dev_addr);
-          developerLevel[dev_addr] = DEV_LEVEL.NONE;
+        require(dev_addr != 0x0);
+        require(dev_addr != owner_, "Must not be self-destruct"); // must not be self-destruct
+        require(isDeveloper(dev_addr), "Not Developers");
+        emit DeleteDeveloper(msg.sender, dev_addr);
+        developerLevel[dev_addr] = DEV_LEVEL.NONE;
     }
 }

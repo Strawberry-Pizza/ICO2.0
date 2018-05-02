@@ -6,7 +6,7 @@ import "./BaseToken.sol";
 import "../ownership/Ownable.sol";
 
 contract CustomToken is BaseToken{
-	constructor() public {
+    constructor() public {
         decimals = 18;     // Amount of decimals for display purposes
         name = "CUSTOM";    // Set the name for display purposes
         symbol = "CTM";        // Set the symbol for display purposes

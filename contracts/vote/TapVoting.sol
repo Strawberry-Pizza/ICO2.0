@@ -14,8 +14,11 @@ contract TapVoting is BaseVoting {
     constructor(
         string _votingName,
         address _tokenAddress,
-        address _fundAddress
-        ) BaseVoting(_votingName, _tokenAddress, _fundAddress) external {}
+        address _fundAddress,
+        address _vestingTokens,
+        address _membersAddress
+        ) BaseVoting(_votingName, _tokenAddress, _fundAddress, _vestingTokens, _membersAddress) public {
+    }
     /* View Function */
     function getTotalPower() view public returns(uint256) {
         // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
@@ -58,14 +61,14 @@ contract TapVoting is BaseVoting {
     }
     function _snapshot() internal returns(bool){
         //FIXIT: how to reduce the snapshot operation gas fee?
-        for(uint256 i = 1; i< index_party_list.add(1); i++) {
+        for(uint256 i = 1; i < index_party_list.add(1); i++) {
             uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 100; // percent
-            uint256 vote_power = mToken.getBalanceOf(party_list[i]).mul(weight).div(100);
+            uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(100);
             party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power 
             if(party_dict[party_list[i]].state == VOTE_STATE.AGREE) {
-                agree_power=agree_power.add(vote_power);
+                agree_power = agree_power.add(vote_power);
             } else if(party_dict[party_list[i]].state == VOTE_STATE.DISAGREE) {
-                disagree_power=disagree_power.add(vote_power);
+                disagree_power = disagree_power.add(vote_power);
             }    // cumulate total power of agree and disagree parties.
         }
         return true;
@@ -76,8 +79,8 @@ contract TapVoting is BaseVoting {
         require(mPeriod == VOTE_PERIOD.CLOSED);
         RESULT_STATE result = RESULT_STATE.NONE;
         
-        if(!_snapshot()){ revert("failed to snapshot in tap finalize."); }
-        if(getParticipatingPerc() < getMinVotingPerc()){ revert("It cannot satisfy minimum voting rate."); }
+        if(!_snapshot()){revert("failed to snapshot in tap finalize.");}
+        if(getParticipatingPerc() < getMinVotingPerc()){revert("It cannot satisfy minimum voting rate.");}
         if(getAgreePower() > getDisagreePower()) {
             result = RESULT_STATE.PASSED;
         }
@@ -86,7 +89,7 @@ contract TapVoting is BaseVoting {
         }
         mPeriod = VOTE_PERIOD.FINALIZED;
         emit FinalizeVote(msg.sender, now, result);
-        if(!mFund.withdrawFromFund()){ revert("failed to withdrawFromFund in tap finalize."); }
+        if(!mFund.withdrawFromFund()){revert("failed to withdrawFromFund in tap finalize.");}
         return result;
     }
     /* Personal Voting function

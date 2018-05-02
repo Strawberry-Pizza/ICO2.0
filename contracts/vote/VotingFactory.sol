@@ -67,13 +67,13 @@ contract VotingFactory is Ownable {
         require(isVoteExist(_votingName));
         require(_vote_type != VOTE_TYPE.NONE);
         if(_vote_type == VOTE_TYPE.REFUND && address(mRefundvoting) == address(0)) {
-            mRefundvoting = new RefundVoting(_votingName, address(mToken), address(mFund), address(mVestingTokens));
+            mRefundvoting = new RefundVoting(_votingName, address(mToken), address(mFund), address(mVestingTokens), address(members));
             mRefundvoting.initialize(_term);
             emit CreateNewVote(address(mRefundvoting), _votingName, _vote_type);
             return address(mRefundvoting);
         }
         if(_vote_type == VOTE_TYPE.TAP && switch__isTapVotingOpened == false) {
-            mTapvoting = new TapVoting(_votingName, address(mToken), address(mFund), address(mVestingTokens));
+            mTapvoting = new TapVoting(_votingName, address(mToken), address(mFund), address(mVestingTokens), address(members));
             mTapvoting.initialize(_term);
             switch__isTapVotingOpened = true;
             emit CreateNewVote(address(mTapvoting), _votingName, _vote_type);
@@ -92,10 +92,10 @@ contract VotingFactory is Ownable {
             mRefundvoting.destroy();
         }
         else if(mVoteList[_votingName].voteType == VOTE_TYPE.TAP && switch__isTapVotingOpened == true) {
-           mTapvoting = TapVoting(_vote_account);
-           emit DestroyVote(_vote_account, _votingName, mVoteList[_votingName].voteType);
-           mTapvoting.destroy();
-           switch__isTapVotingOpened = false;
+            mTapvoting = TapVoting(_vote_account);
+            emit DestroyVote(_vote_account, _votingName, mVoteList[_votingName].voteType);
+            mTapvoting.destroy();
+            switch__isTapVotingOpened = false;
         }
         return true;
     }
@@ -104,6 +104,6 @@ contract VotingFactory is Ownable {
         //TODO
         //require(~~, "invalid time for refreshing Refund Voting.");
         require(address(mRefundvoting) != address(0), "has not already set refundvoting.");
-        if(!mRefundvoting.refresh()) { revert("cannot refresh refund voting"); }
+        if(!mRefundvoting.refresh()) {revert("cannot refresh refund voting");}
     }
 }

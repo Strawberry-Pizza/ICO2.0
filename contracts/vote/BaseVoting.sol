@@ -4,8 +4,9 @@ import "../token/ERC20.sol";
 import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
 import "../token/VestingTokens.sol";
+import "../ownership/Ownable.sol";
 
-contract BaseVoting {
+contract BaseVoting is Ownable {
     /*Library and Typedefs*/
     using SafeMath for uint256;
 
@@ -38,7 +39,11 @@ contract BaseVoting {
 
     mapping(address => vote_receipt) public party_dict;
     address[] public party_list;
-
+    
+    /* comment by @JChoy
+        why do we need revoke_list and index_party_list?
+        at Issue #4
+    */
 
 
     /* Events */
@@ -62,8 +67,14 @@ contract BaseVoting {
         string _votingName,
         address _tokenAddress,
         address _fundAddress,
-        address _vestingTokensAddress
-        ) external {
+        address _vestingTokensAddress,
+        address _membersAddress
+        ) public Ownable(_membersAddress) {
+        require(_tokenAddress != address(0));
+        require(_fundAddress != address(0));
+        require(_vestingTokensAddress != address(0));
+        require(_membersAddress != 0x0);
+
         mVotingName = _votingName;
         mToken = ERC20(_tokenAddress);
         mFund = Fund(_fundAddress);
@@ -82,6 +93,15 @@ contract BaseVoting {
     function getName() public view returns(string){ return mVotingName; }
     function getTotalParty() public view returns(uint256) {
         return agree_power.add(disagree_power);
+    }
+    function readPartyDict(address account) public view returns(VOTE_STATE, uint256, bool) {
+        return (party_dict[account].state, party_dict[account].power, party_dict[account].isReceivedIncentive);
+    }
+    function writePartyDict(address account, VOTE_STATE a, uint256 b, bool c) public returns(bool) {
+        if(a != VOTE_STATE.NONE) {party_dict[account].state = a;}
+        if(b != 0) {party_dict[account].power = b;}
+        if(c != false) {party_dict[account].isReceivedIncentive = true;}
+        return true;
     }
 
 
