@@ -139,31 +139,24 @@ contract Crowdsale is Ownable, ICrowdsale{
     function getCurrentAmount() view public returns(uint256) { return mCurrentAmount; }
     //divide type and check amount of current locked tokens
     function getLockedAmount(VestingTokens.LOCK_TYPE _type) view public returns(uint256){
-        uint i = 0;
+        uint i;
         uint sum = 0;
-        /*
-        // comment by @jw-pyo
-        // mapping type couldn't be used as local Variables
-        // change this function not using mapping structure
-         
-        address[] memory targetIndex; 
-        mapping(address => uint) memory target; 
+        
         if(_type == VestingTokens.LOCK_TYPE.DEV){
-            targetIndex = mDevelopersIndex;
-            target = mDevelopers;
+            for (i = 0; i < mDevelopersIndex.length; i++) {
+                sum += mDevelopers[mDevelopersIndex[i]];
+            }
         } else if(_type == VestingTokens.LOCK_TYPE.ADV){
-            targetIndex = mAdvisorsIndex;
-            target = mAdvisors;
+            for (i = 0; i < mAdvisorsIndex.length; i++) {
+                sum += mAdvisors[mAdvisorsIndex[i]];
+            }
         } else if(_type == VestingTokens.LOCK_TYPE.PRIV){
-            targetIndex = mPrivateSaleIndex;
-            target = mPrivateSale;
+            for (i = 0; i < mPrivateSaleIndex.length; i++) {
+                sum += mPrivateSale[mPrivateSaleIndex[i]];
+            }
         } else
             revert("Wrong Type");
-        for (i = 0; i < targetIndex.length; i++) {
-            sum += target[targetIndex[i]];
-        }
 
-        */
         return sum;
     }
     // Business logic could be described here or getRate()
@@ -249,7 +242,6 @@ contract Crowdsale is Ownable, ICrowdsale{
         uint weiAmount = msg.value;
         // calculate token amount to be created
         uint tokens;
-        bool get_ether_success;
         bool send_token_success;
         if(!isOver(weiAmount)){ //check if estimate ether exceeds next cap
             tokens = getTokenAmount(weiAmount);

@@ -65,13 +65,13 @@ contract BaseVoting is Ownable {
     }
     function readPartyDict(address account) public view returns(VOTE_STATE, uint256, bool) {
         return (party_dict[account].state, party_dict[account].power, party_dict[account].isReceivedIncentive);
-     }
-     function writePartyDict(address account, VOTE_STATE a, uint256 b, bool c) external returns(bool) {
-         if(a != VOTE_STATE.NONE) { party_dict[account].state = a; }
-         if(b != 0) { party_dict[account].power = b; }
-         if(c != false) { party_dict[account].isReceivedIncentive = true; }
-         return true;
-     }
+    }
+    function writePartyDict(address account, VOTE_STATE a, uint256 b, bool c) external returns(bool) {
+        if(a != VOTE_STATE.NONE) {party_dict[account].state = a;}
+        if(b != 0) {party_dict[account].power = b;}
+        if(c != false) {party_dict[account].isReceivedIncentive = true;}
+        return true;
+    }
 
     /* Voting Period Function
      * order: initialize -> open -> close -> finalize

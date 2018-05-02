@@ -79,10 +79,10 @@ contract VotingFactory is Ownable {
             refundvoting.destroy();
         }
         else if(voteList[_votingName].voteType == VOTE_TYPE.TAP && switch__isTapVotingOpened == true) {
-           tapvoting = TapVoting(vote_account);
-           emit DestroyVote(vote_account, _votingName, voteList[_votingName].voteType);
-           tapvoting.destroy();
-           switch__isTapVotingOpened = false;
+            tapvoting = TapVoting(vote_account);
+            emit DestroyVote(vote_account, _votingName, voteList[_votingName].voteType);
+            tapvoting.destroy();
+            switch__isTapVotingOpened = false;
         }
         return true;
     }
@@ -91,6 +91,6 @@ contract VotingFactory is Ownable {
         //TODO
         //require(~~, "invalid time for refreshing Refund Voting.");
         require(address(refundvoting) != 0x0, "has not already set refundvoting.");
-        if(!refundvoting.refresh()) { revert("cannot refresh refund voting"); }
+        if(!refundvoting.refresh()) {revert("cannot refresh refund voting");}
     }
 }

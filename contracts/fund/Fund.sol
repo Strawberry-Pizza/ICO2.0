@@ -164,15 +164,15 @@ contract Fund is Ownable {
         require(teamWallet != 0x0, "teamWallet has not determined.");
         require(getWithdrawable() != 0, "not enough withdrawable ETH.");
         uint256 withdraw_amount = getWithdrawable();
-        if(!teamWallet.send(withdraw_amount)) { revert(); } //payable
-        if(!_withdrawFromIncentive(withdraw_amount)) { revert(); }
+        teamWallet.transfer(withdraw_amount); //payable
+        if(!_withdrawFromIncentive(withdraw_amount)) {revert();}
         emit WithdrawFromFund(now, address(this), teamWallet);
         return true;
     }
     function _withdrawFromIncentive(uint256 withdraw_amt) internal period(FUNDSTATE.WORKING) only(address(tapVoting)) unlock returns(bool) {
         require(address(inc_pool) != 0x0, "Incentive pool has not deployed.");
 
-        if(!inc_pool.withdraw(withdraw_amt)) { revert(); }
+        if(!inc_pool.withdraw(withdraw_amt)) {revert();}
         emit WithdrawFromIncentive(now, address(inc_pool), msg.sender);
         return true;
     }
@@ -182,7 +182,7 @@ contract Fund is Ownable {
 
         //TODO: not implemented
         uint256 tokenAmount = 100;
-        if(!res_pool.withdraw(tokenAmount)) { revert(); }
+        if(!res_pool.withdraw(tokenAmount)) {revert();}
         emit WithdrawFromReserve(now, address(res_pool), teamWallet);
         return true;
     }

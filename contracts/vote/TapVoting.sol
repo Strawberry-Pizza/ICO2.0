@@ -15,9 +15,10 @@ contract TapVoting is BaseVoting {
         string _votingName,
         address _tokenAddress,
         address _fundAddress,
-        address _membersAddress) BaseVoting(_votingName, _tokenAddress, _fundAddress, _membersAddress) public {
+        address _membersAddress
+        ) BaseVoting(_votingName, _tokenAddress, _fundAddress, _membersAddress) public {
         //FIXIT: external...
-        }
+    }
     /* View Function */
     function getTotalPower() view public returns(uint256) {
         // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
