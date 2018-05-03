@@ -10,7 +10,7 @@ contract BaseVoting is Ownable {
     /*Library and Typedefs*/
     using SafeMath for uint256;
 
-    enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED}
+    enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED, DISCARDED}
     enum VOTE_STATE {NONE, AGREE, DISAGREE}
     enum RESULT_STATE {NONE, PASSED, REJECTED}
 
@@ -37,6 +37,9 @@ contract BaseVoting is Ownable {
 
     mapping(address => vote_receipt) public party_dict;
     address[] public party_list;
+      
+    bool public isAvailable = true; //
+    uint256 public discardTime;
     
     /* comment by @JChoy
         why do we need revoke_list and index_party_list?
@@ -44,9 +47,10 @@ contract BaseVoting is Ownable {
     */
     /* Events */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
-    event OpenVoting(address indexed opener, uint256 open_time);
-    event CloseVoting(address indexed closer, uint256 close_time);
-    event FinalizeVote(address indexed finalizer, uint256 finalize_time, RESULT_STATE result);
+    event OpenVote(address indexed opener, uint256 open_time);
+    event CloseVote(address indexed closer, uint256 close_time);
+    event FinalizeVote(address indexed finalizer, uint256 finalize_time);
+    event DiscardVote(address indexed vote_account, uint256 discard_time);
 
     /* Modifiers */
     modifier period(VOTE_PERIOD p) {
@@ -56,6 +60,11 @@ contract BaseVoting is Ownable {
     
     modifier onlyVotingFactory() {
         require(msg.sender == mFactoryAddress);
+        _;
+    }
+
+    modifier available() {
+        require(isAvailable, "this refund voting has been discarded.");
         _;
     }
 
@@ -80,6 +89,7 @@ contract BaseVoting is Ownable {
             mVestingTokens = VestingTokens(_vestingTokensAddress);
             mPeriod = VOTE_PERIOD.NONE;
             mFactoryAddress = msg.sender; // It should be called by only VotingFactory
+            isAvailable = true;
     }
 
     /* View Function */
@@ -98,6 +108,12 @@ contract BaseVoting is Ownable {
             return agree_power.add(disagree_power);
     }
 
+    function getDiscardTime() public view
+        returns(uint256) {
+            require(discardTime != uint256(0), "this vote is not discarded.");
+            return discardTime;
+    }
+
     function readPartyDict(address account) public view 
         returns(VOTE_STATE, uint256, bool) {
             return (party_dict[account].state, party_dict[account].power, party_dict[account].isReceivedIncentive);
@@ -109,6 +125,7 @@ contract BaseVoting is Ownable {
         uint256 b,
         bool c)
             public 
+            available
             returns(bool) {
                 if(a != VOTE_STATE.NONE) {party_dict[account].state = a;}
                 if(b != 0) {party_dict[account].power = b;}
@@ -120,7 +137,8 @@ contract BaseVoting is Ownable {
      * order: initialize -> open -> close -> finalize
      */
     function initializeVote(uint256 _term) public 
-        period(VOTE_PERIOD.NONE) 
+        period(VOTE_PERIOD.NONE)
+        available 
         returns(bool) {
             require(msg.sender != 0x0);
 
@@ -133,36 +151,56 @@ contract BaseVoting is Ownable {
 
     function openVote() public
         period(VOTE_PERIOD.INITIALIZED)
+        available
         returns(bool) {
             mPeriod = VOTE_PERIOD.OPENED;
-            emit OpenVoting(msg.sender, now);
+            emit OpenVote(msg.sender, now);
             return true;
     }
 
     function closeVote() public
         period(VOTE_PERIOD.OPENED)
+        available
         returns(bool) {
             require(now >= endTime);
 
             mPeriod = VOTE_PERIOD.CLOSED;
-            emit CloseVoting(msg.sender, now);
+            emit CloseVote(msg.sender, now);
             return true;
     }
     //TODO: specify the condition of finality
     function finalizeVote() public
-        period(VOTE_PERIOD.CLOSED) 
-        returns(RESULT_STATE) { 
+        period(VOTE_PERIOD.CLOSED)
+        available 
+        returns(bool) { 
+        //TODO
+            emit FinalizeVote(msg.sender, now);
+            return true; 
+    }
+    
+    function discard() public
+        only(mFactoryAddress)
+        period(VOTE_PERIOD.FINALIZED)
+        available
+        returns(bool) {
+            if(!_haltFunctions()) { revert("cannot discard this function."); }
+            discardTime = now;
+            emit DiscardVote(address(this), discardTime);
+            return true;
+    }
 
-        
-        
-        
-            return RESULT_STATE.NONE; 
+    function _haltFunctions() internal
+        available
+        returns(bool) {
+            isAvailable = false;
+            return true;
     }
 
     /* Personal Voting function
      * vote, getBack
      */
     function vote(bool _agree) public
+        available
         returns(bool) {    
             require(isActivated());
             require(msg.sender != 0x0);
@@ -177,6 +215,7 @@ contract BaseVoting is Ownable {
     }
     
     function getBack() public
+        available
         returns(bool) {
             require(isActivated());
             require(msg.sender != 0x0);
@@ -187,16 +226,7 @@ contract BaseVoting is Ownable {
             return true; 
     }
 
-    /* Destroy function */
-    //TODO: 
-    // function _clearVariables() public returns(bool); // clean vars after finalizing prev voting.
-    function destroy() public
-        only(mFactoryAddress)
-        returns(bool) {
-            require(mPeriod == VOTE_PERIOD.FINALIZED);
-            selfdestruct(address(this));
-            return true;
-    }
+    
 }
 
 

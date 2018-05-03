@@ -20,105 +20,104 @@ contract TapVoting is BaseVoting {
         ) BaseVoting(_votingName, _tokenAddress, _fundAddress, _vestingTokens, _membersAddress) public {
     }
     /* View Function */
-    function getTotalPower() view public returns(uint256) {
-        // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
-        uint256 ret1 = mToken.totalSupply().mul(uint256(100).sub(DEV_PERC)).mul(100);
-        uint256 ret2 = mToken.totalSupply().mul(DEV_PERC).mul(DEV_POWER);
-        return ret1.add(ret2);
+    function getTotalPower() view public
+        returns(uint256) {
+            // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
+            uint256 ret1 = mToken.totalSupply().mul(uint256(100).sub(DEV_PERC)).mul(100);
+            uint256 ret2 = mToken.totalSupply().mul(DEV_PERC).mul(DEV_POWER);
+            return ret1.add(ret2);
     }
-    function getAgreePower() view public returns(uint256) {
-        return agree_power;
+    function getAgreePower() view public
+        returns(uint256) {
+            return agree_power;
     }
-    function getDisagreePower() view public returns(uint256) {
-        return disagree_power;
+    function getDisagreePower() view public 
+        returns(uint256) {
+            return disagree_power;
     }
-    function getAbsentPower() view public returns(uint256) {
-        uint256 voted_power = agree_power.add(disagree_power);
-        return getTotalPower().sub(voted_power);
+    function getAbsentPower() view public 
+        returns(uint256) {
+            uint256 voted_power = agree_power.add(disagree_power);
+            return getTotalPower().sub(voted_power);
     }
-    function getParticipatingPerc() view public returns(uint256) {
-        uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(100);
-        uint256 participating_token = getAgreePower().add(getDisagreePower());
-        return participating_token.mul(100).div(total_token);
+    function getParticipatingPerc() view public 
+        returns(uint256) {
+            uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(100);
+            uint256 participating_token = getAgreePower().add(getDisagreePower());
+            return participating_token.mul(100).div(total_token);
     }
-    function getMinVotingPerc() view public returns(uint256) {
-        //TODO: it is affected by the previous tap voting's participating rate.
-        return 20;
+    function getMinVotingPerc() view public
+        returns(uint256) {
+            //TODO: it is affected by the previous tap voting's participating rate.
+            return 20;
     }
 
     /* Voting Period Function
      * order: initialize -> open -> close -> finalize
      */
-    function initialize(uint256 term) public returns(bool){
-        require(term > MIN_TERM && MAX_TERM > term);
-        super.initialize(term);
-    }
-    function openVoting() public returns(bool){
-        super.openVoting();
-    }
-    function closeVoting() public returns(bool){
-        super.closeVoting();
-    }
-    function _snapshot() internal returns(bool){
-        //FIXIT: how to reduce the snapshot operation gas fee?
-        for(uint256 i = 1; i < index_party_list.add(1); i++) {
-            uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 100; // percent
-            uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(100);
-            party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power 
-            if(party_dict[party_list[i]].state == VOTE_STATE.AGREE) {
-                agree_power = agree_power.add(vote_power);
-            } else if(party_dict[party_list[i]].state == VOTE_STATE.DISAGREE) {
-                disagree_power = disagree_power.add(vote_power);
-            }    // cumulate total power of agree and disagree parties.
-        }
-        return true;
+    function initializeVote(uint256 term) public
+        returns(bool) {
+            require(term > MIN_TERM && MAX_TERM > term);
+            super.initializeVote(term);
     }
 
-    function finalize() public returns(RESULT_STATE) {
-        // pass the vote if yes - no > 0
-        require(mPeriod == VOTE_PERIOD.CLOSED);
-        RESULT_STATE result = RESULT_STATE.NONE;
-        
-        if(!_snapshot()){revert("failed to snapshot in tap finalize.");}
-        if(getParticipatingPerc() < getMinVotingPerc()){revert("It cannot satisfy minimum voting rate.");}
-        if(getAgreePower() > getDisagreePower()) {
-            result = RESULT_STATE.PASSED;
-        }
-        else {
-            result = RESULT_STATE.REJECTED;
-        }
-        mPeriod = VOTE_PERIOD.FINALIZED;
-        emit FinalizeVote(msg.sender, now, result);
-        if(!mFund.withdrawFromFund()){revert("failed to withdrawFromFund in tap finalize.");}
-        return result;
+    function openVote() public
+        returns(bool) {
+            super.openVote();
+    }
+
+    function closeVote() public
+        returns(bool) {
+            super.closeVote();
+    }
+
+    function _snapshot() internal
+        returns(bool){
+            //FIXIT: how to reduce the snapshot operation gas fee?
+            for(uint256 i = 0; i < party_list.length; i++) {
+                uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 100; // percent
+                uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(100);
+                party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power 
+                if(party_dict[party_list[i]].state == VOTE_STATE.AGREE) {
+                    agree_power = agree_power.add(vote_power);
+                } else if(party_dict[party_list[i]].state == VOTE_STATE.DISAGREE) {
+                    disagree_power = disagree_power.add(vote_power);
+                }    // cumulate total power of agree and disagree parties.
+            }
+            return true;
+    }
+
+    function finalizeVote() public
+        returns(bool) {
+            // pass the vote if yes - no > 0
+            require(mPeriod == VOTE_PERIOD.CLOSED);
+            RESULT_STATE result = RESULT_STATE.NONE;
+            
+            if(!_snapshot()){revert("failed to snapshot in tap finalize.");}
+            if(getParticipatingPerc() < getMinVotingPerc()){revert("It cannot satisfy minimum voting rate.");}
+            if(getAgreePower() > getDisagreePower()) {
+                result = RESULT_STATE.PASSED;
+            }
+            else {
+                result = RESULT_STATE.REJECTED;
+            }
+            mPeriod = VOTE_PERIOD.FINALIZED;
+            emit FinalizeVote(msg.sender, now);
+            if(!mFund.withdrawFromFund()){revert("failed to withdrawFromFund in tap finalize.");}
+            return true;
     }
     /* Personal Voting function
-     * vote, revoke
+     * vote, getBack
      */
-    function vote(bool agree) public returns(bool) {
-        return super.vote(agree);
+    function vote(bool agree) public
+        returns(bool) {
+            return super.vote(agree);
     }
 
-    function revoke() public returns(bool) {
-        //TODO: need to be fixed
-        require(isActivated());
-        require(msg.sender != 0x0);
-        require(party_dict[msg.sender].state != VOTE_STATE.NONE); // can vote only once
-
-        uint256 vote_power = party_dict[msg.sender].power;
-        //add sender to revoke_list(or count up)
-        if(revoke_list[msg.sender] > 0) { revoke_list[msg.sender]++; }
-        else { revoke_list[msg.sender] = 1; }
-        //subtract the count that sender voted before
-        if(party_dict[msg.sender].state == VOTE_STATE.AGREE){
-            agree_power = agree_power.sub(vote_power);
-        }
-        else if(party_dict[msg.sender].state == VOTE_STATE.DISAGREE) {
-            disagree_power = disagree_power.sub(vote_power);
-        }
-        //change the voter's state to NONE.
-        party_dict[msg.sender].state = VOTE_STATE.NONE;
-        return true;
+    function getBack() public 
+        available
+        returns (bool) {
+            return super.getBack();
     }
 
     //TODO: we should add(override) some meaningful function

@@ -4,19 +4,10 @@ import "./BaseVoting.sol";
 
 contract RefundVoting is BaseVoting {
 
-    //TODO:can enum type be overrided?
-    enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED, DISCARDED}
-
     uint256 public constant REFRESH_TERM = 4 weeks; //should be changed
-    uint256 public discardTime;
-    bool public isAvailable = true;
 
-    event RefreshRefundVoting(uint256 indexed time);
+    event DiscardRefundVoting(uint256 indexed time);
 
-    modifier available() {
-        require(isAvailable, "this refund voting has been discarded.");
-        _;
-    }
 
     constructor(
         string _votingName,
@@ -25,12 +16,16 @@ contract RefundVoting is BaseVoting {
         address _vestingTokens,
         address _membersAddress
         ) BaseVoting(_votingName, _tokenAddress, _fundAddress, _vestingTokens, _membersAddress) public {
-        isAvailable = true;
     }
     
     function canDiscard() public view
         returns(bool) {
             return (now >= endTime && now >= startTime.add(REFRESH_TERM));
+    }
+
+    function isDiscarded() public view
+        returns(bool) {
+            return (VOTE_PERIOD.DISCARDED == mPeriod) ;
     }
     
     /* RefundVoting Period Function
@@ -60,8 +55,8 @@ contract RefundVoting is BaseVoting {
     function finalizeVote() public
         period(VOTE_PERIOD.CLOSED) 
         available
-        returns (RESULT_STATE) {
-            
+        returns (bool) {
+            return super.finalizeVote();
     }
     
     function discard() public
@@ -75,16 +70,10 @@ contract RefundVoting is BaseVoting {
             
             discardTime = now;
             mPeriod = VOTE_PERIOD.DISCARDED;
-            emit RefreshRefundVoting(discardTime);
+            emit DiscardRefundVoting(discardTime);
             return true;
     }
     
-    function _haltFunctions() internal
-        available
-        returns(bool) {
-            isAvailable = false;
-            return true;
-    }
     /* Personal Voting function
      * vote, getBack
      */
