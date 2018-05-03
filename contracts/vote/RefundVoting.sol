@@ -4,10 +4,7 @@ import "./BaseVoting.sol";
 
 contract RefundVoting is BaseVoting {
 
-    uint256 public constant REFRESH_TERM = 4 weeks; //should be changed
-    uint256 public lastRefreshTime;
-
-    event RefreshRefundVoting(uint256 indexed time);
+    event DiscardRefundVoting(uint256 indexed time);
 
     constructor(
         string _votingName,
@@ -18,37 +15,76 @@ contract RefundVoting is BaseVoting {
         ) BaseVoting(_votingName, _tokenAddress, _fundAddress, _vestingTokens, _membersAddress) public {
     }
     
-    function canRefresh() public view returns(bool) {
-        return (now >= lastRefreshTime.add(REFRESH_TERM));
-    }
-    
-    function initialize() public returns(bool) {
-        super.initialize(REFRESH_TERM); //fixed term
-    }
-    function finalize() public returns (RESULT_STATE) { 
-    }
-    function vote(bool agree) public returns (bool) {
-        return super.vote(agree);
-    }
-    function revoke() public returns (bool) {
-    //TODO
-    }
-    function refresh() external onlyVotingFactory returns(bool) {
-        require(now >= REFRESH_TERM.add(lastRefreshTime), "check that refund voting is in the refreshable state.");
-        
-        if(!_clearVariables()) {revert("cannot clear the refund voting.");}
-        if(!_reinitVariables()) {revert("cannot reinitialize the refund voting.");}
-        lastRefreshTime = now;
-        emit RefreshRefundVoting(now);
-        return true;
-    }
-    
-    function _clearVariables() internal returns(bool) {
-    //TODO
+    function canDiscard() public view
+        returns(bool) {
+            return (now >= endTime && now >= startTime.add(REFRESH_TERM));
     }
 
-    function _reinitVariables() internal returns(bool) {
-    //TODO
+    function isDiscarded() public view
+        returns(bool) {
+            return (VOTE_PERIOD.DISCARDED == mPeriod) ;
     }
-    //TODO: we should add(override) some meaningful function
+    
+    /* RefundVoting Period Function
+     * order: initialize -> open -> close -> finalize -> discard
+     */
+    function initializeVote() public
+        period(VOTE_PERIOD.NONE)
+        available
+        returns(bool) {
+            return super.initializeVote(REFRESH_TERM); //fixed term
+    }
+    
+    function openVote() public
+        period(VOTE_PERIOD.INITIALIZED)
+        available
+        returns(bool) {
+            return super.openVote();
+    }
+
+    function closeVote() public
+        period(VOTE_PERIOD.OPENED)
+        available
+        returns(bool) {
+            return super.closeVote();
+    }
+
+    function finalizeVote() public
+        period(VOTE_PERIOD.CLOSED) 
+        available
+        returns (bool) {
+            return super.finalizeVote();
+    }
+    
+    function discard() public
+        period(VOTE_PERIOD.FINALIZED)
+        available
+        only(mFactoryAddress)
+        returns(bool) {
+            require(now >= endTime && now >= startTime.add(REFRESH_TERM), "check that refund voting is in the discardable state.");
+            
+            if(!_haltFunctions()) {revert("cannot discard the refund voting.");}
+            
+            discardTime = now;
+            mPeriod = VOTE_PERIOD.DISCARDED;
+            emit DiscardRefundVoting(discardTime);
+            return true;
+    }
+    
+    /* Personal Voting function
+     * vote, getBack
+     */
+    function vote(bool agree) public
+        available
+        returns (bool) {
+            return super.vote(agree);
+    }
+    
+    function getBack() public
+        available
+        returns (bool) {
+            return super.getBack();
+    }
+    
+
 }
