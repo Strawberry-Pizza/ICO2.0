@@ -2,27 +2,24 @@ pragma solidity ^0.4.23;
 
 import "../fund/Fund.sol";
 import "../token/ERC20.sol";
+import "../ownership/Ownable.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../vote/TapVoting.sol";
 import "../lib/SafeMath.sol";
 import "../lib/Param.sol";
 
-contract ReservePool is Param {
+contract ReservePool is Ownable, Param {
     using SafeMath for uint256;
 
     ERC20 public token;
     Fund private fund;
     address public teamWallet;
-    constructor(address _token, address _fund, address _teamWallet) public {
-        //FIXIT: external???
-        token = ERC20(_token);
-        fund = Fund(_fund);
-        teamWallet = _teamWallet;
-    }
-
-    modifier onlyFund(){
-        require(msg.sender == address(fund));
-        _;
+    
+    constructor(address _token, address _fund, address _teamWallet) public
+        only(_fund) {
+            token = ERC20(_token);
+            fund = Fund(_fund);
+            teamWallet = _teamWallet;
     }
 
     event ReserveWithdrawTime(uint256 indexed time, uint256 indexed amount, address indexed team_wallet);

@@ -8,10 +8,11 @@ contract Param {
         uint public constant INITIAL_SUPPLY = 100 * (1000 ** 3) * (10 ** uint256(DECIMALS));
         string public constant TOKEN_NAME = "CUSTOM";
         string public constant TOKEN_SYMBOL = "CTM";
-    
+
     /* Crowdsale */
 
         uint public constant HARD_CAP = 37500 ether;
+        uint public constant SOFT_CAP = 5000 ether;
         uint public constant MIN_CONTRIB = 5000 ether;
 
         //percentage of tokens total : 1000%
@@ -55,4 +56,5 @@ contract Param {
         // DEV_TOKEN_PERC // derived from Crowdsale
         uint256 public constant PUBLIC_TOKEN_PERC = 65; //FIXIT: it should be changed in every tap voting term and it is NOT constant, it means totalSupply() - locked_token - reserve_token
         uint256 public constant REFRESH_TERM = 4 weeks; // refresh term of refund voting
+        uint256 public constant MIN_VOTABLE_TOKEN_PER = 1; // 0.01% (max: 10000)
 }

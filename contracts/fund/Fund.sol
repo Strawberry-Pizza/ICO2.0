@@ -32,10 +32,11 @@ contract Fund is Ownable, Param {
     // totalEther = [contract_account].balance
     FUNDSTATE public state;
     ERC20 public token;
+    VestingTokens public vestingTokens;
     address public teamWallet; // no restriction for withdrawing
     uint256 public tap;
-    uint256 public retapVotingStartTime; // term that the new tap voting is able to restart
     uint256 public lastWithdrawTime;
+    
     bool private switch__dividePoolAfterSale = false;
     bool private switch__lock_fund = false;
 
@@ -62,6 +63,16 @@ contract Fund is Ownable, Param {
         _;
     }
 
+    modifier allset {
+        require(token != 0x0);
+        require(vestingTokens != 0x0);
+        require(teamWallet != 0x0);
+        require(membersAddress != 0x0);
+        require(inc_pool != 0x0);
+        require(res_pool != 0x0);
+        _;
+    }
+
     /* Events */
     event CreateFund(address indexed token_address, address indexed team_wallet, address indexed fund_addr);
     event SetVotingFactoryAddress(address indexed voting_factory_addr, address indexed setter);
@@ -72,32 +83,43 @@ contract Fund is Ownable, Param {
     event WithdrawFromFund(uint256 indexed time, address indexed fund_addr, address indexed _teamwallet);
     event WithdrawFromIncentive(uint256 indexed time, address indexed inc_addr, address indexed _caller);
     event WithdrawFromReserve(uint256 indexed time, address indexed res_addr, address indexed _teamwallet);
+    event Refund(uint256 indexed time, address indexed refund_addr, uint256 indexed wei_amount);
     //add more
 
     /* Constructor */
     constructor(
         address _token,
+        address _vestingTokens,
         address _teamWallet,
         address _membersAddress
         ) public Ownable(_membersAddress) {
-        require(_token != 0x0);
-        require(_teamWallet != 0x0);
-        require(_membersAddress != 0x0);
-        state = FUNDSTATE.BEFORE_SALE;
-        // setFundAddress(address(this)); //FIXIT: set fund address in Members.fundAddress
-        token = ERC20(_token);
-        teamWallet = _teamWallet;
-        inc_pool = new IncentivePool(_token, address(this));
-        res_pool = new ReservePool(_token, address(this), _teamWallet);
-        tap = INITIAL_TAP;
-        emit CreateFund(token, teamWallet, address(this));
+            require(_token != 0x0);
+            require(_vestingTokens != 0x0);
+            require(_teamWallet != 0x0);
+            require(_membersAddress != 0x0);
+            state = FUNDSTATE.BEFORE_SALE;
+            // setFundAddress(address(this)); //FIXIT: set fund address in Members.fundAddress
+            token = ERC20(_token);
+            vestingTokens = VestingTokens(_vestingTokens);
+            teamWallet = _teamWallet;
+            inc_pool = new IncentivePool(_token, address(this));
+            res_pool = new ReservePool(_token, address(this), _teamWallet);
+            tap = INITIAL_TAP;
+            lastWithdrawTime = now;
+            emit CreateFund(token, teamWallet, address(this));
     }
 
     /* View Function */
-    function getVestingRate() view public 
+    function getVestingRate() view public //FIXIT: is it needed?
         returns(uint256) {
-            uint256 term = now.sub(crowdsale.getStartTime()); // is the unit same?
+            uint256 term = now.sub(crowdsale.getStartTime());
             return term.div(DEV_VESTING_PERIOD);
+    }
+    // the total supply of unlocked token
+    function publicSupply() public view
+        returns(uint256) {
+            require(token != 0x0);
+            return token.totalSupply().sub(token.balanceOf(address(vestingTokens)));
     }
     
     function getState() view public
@@ -137,7 +159,7 @@ contract Fund is Ownable, Param {
     
     function getWithdrawable() view public 
         returns(uint256) {
-            return tap*( now - lastWithdrawTime );
+            return tap.mul(now.sub(lastWithdrawTime));
     }
     
     function getLocked() view public
@@ -151,6 +173,8 @@ contract Fund is Ownable, Param {
         unlock
         returns(bool) {
             require(_votingfacaddr != 0x0);
+            require(address(votingFactory) == 0x0, "should call only once");
+
             votingFactory = VotingFactory(_votingfacaddr);
             emit SetVotingFactoryAddress(_votingfacaddr, msg.sender);
             return true;
@@ -161,6 +185,8 @@ contract Fund is Ownable, Param {
         unlock 
         returns(bool) {
             require(_crowdsale != 0x0);
+            require(address(crowdsale) == 0x0, "should call only once");
+
             crowdsale = Crowdsale(_crowdsale);
             emit SetCrowdsaleAddress(_crowdsale, msg.sender);
             return true;
@@ -187,27 +213,34 @@ contract Fund is Ownable, Param {
     function lockFund() public
         period(FUNDSTATE.WORKING)
         only(address(refundVoting))
-        unlock {
+        unlock
+        returns(bool) {
             state = FUNDSTATE.LOCKED;
             switch__lock_fund = true;
+            if(!vestingTokens.lock(true)) { revert(); }
             emit ChangeFundState(now, state);
+            return true;
     }
 
     /* Tap Function */
     function increaseTap(uint256 change) public
         period(FUNDSTATE.WORKING)
         only(address(tapVoting))
-        unlock {
+        unlock 
+        returns(bool) {
             tap = tap.add(change);
             emit ChangeTap(now, tap);
+            return true;
     }
     
     function decreaseTap(uint256 change) public
         period(FUNDSTATE.WORKING)
         only(address(tapVoting))
-        unlock {
+        unlock 
+        returns(bool) {
             tap = tap.sub(change);
             emit ChangeTap(now, tap);
+            return true;
     }
 
     /* Withdraw Function */
@@ -215,7 +248,7 @@ contract Fund is Ownable, Param {
         period(FUNDSTATE.WORKING)
         only(address(crowdsale)) {
             //asset_percent = [public, incentive, reserve] = total 100
-            require(!switch__dividePoolAfterSale);
+            require(!switch__dividePoolAfterSale, "this function should be called only once.");
             
             switch__dividePoolAfterSale = true; // this function is called only once.
             token.transfer(address(inc_pool), address(this).balance.mul(asset_percent[1]).div(100));
@@ -223,7 +256,7 @@ contract Fund is Ownable, Param {
             emit DividePoolAfterSale(address(this), address(inc_pool), address(res_pool));
     }
 
-    function withdrawFromFund() external
+    function withdrawTap() public
         period(FUNDSTATE.WORKING)
         only(address(tapVoting))
         unlock
@@ -233,12 +266,12 @@ contract Fund is Ownable, Param {
             require(getWithdrawable() != 0, "not enough withdrawable ETH.");
             
             uint256 withdraw_amount = getWithdrawable();
-            teamWallet.transfer(withdraw_amount); //payable
+            if(!teamWallet.transfer(withdraw_amount)){ revert(); }  //payable
             if(!_withdrawFromIncentive(withdraw_amount)) {revert();}
             emit WithdrawFromFund(now, address(this), teamWallet);
             return true;
     }
-    function _withdrawFromIncentive(uint256 withdraw_amt) internal 
+    function _withdrawFromIncentive(uint256 withdraw_amt) private 
         period(FUNDSTATE.WORKING)  
         unlock 
         returns(bool) {
@@ -267,16 +300,24 @@ contract Fund is Ownable, Param {
     /* Refund Function */
     function refund() external  
         period(FUNDSTATE.LOCKED) 
-        lock 
+        lock
+        allset
         returns(bool) {
-            //TODO: refund the whole ETH to token holders(by airdrop)
-            //      except developers, advisors, pre-sale participants
-            uint256 price = address(this).balance; //TODO
-            uint256 balanceOf(msg.sender)
-            if(!msg.sender.send(price)) {revert("cannot refund."); }
+            
+            uint256 refundETH = address(this).balance.mul(token.balanceOf(msg.sender)).div(publicSupply()); // refund ETH = remained ETH * (Token Amount) / (Public Token Supply)
+            if(!msg.sender.transfer(refundETH)) {revert("cannot refund."); }
+            emit Refund(now, msg.sender, refundETH);
             return true;
-
-
     }
+
+    function dead() external
+        period(FUNDSTATE.LOCKED)
+        lock
+        allset
+        returns(bool) {
+            require(address(this).balance <= 10 ether, "it is temporary value");
+            state = COLLAPSED;
+            return true;
+        }
 }
 

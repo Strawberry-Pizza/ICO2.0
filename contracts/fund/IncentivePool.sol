@@ -2,12 +2,13 @@ pragma solidity ^0.4.23;
 
 import "../fund/Fund.sol";
 import "../token/ERC20.sol";
+import "../ownership/Ownable.sol";
 import "../vote/TapVoting.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../lib/SafeMath.sol";
 import "../lib/Param.sol";
 
-contract IncentivePool is Param {
+contract IncentivePool is Ownable, Param {
     using SafeMath for uint256;
 
     ERC20 public token;
@@ -18,15 +19,11 @@ contract IncentivePool is Param {
     uint256 currentTapVotingNumber;
     mapping(uint256 => bool) switch__withdraw;
 
-    modifier onlyFund(){
-        require(msg.sender == address(fund));
-        _;
-    }
-
-    constructor(address _token, address _fund) public {
-        token = ERC20(_token);
-        fund = Fund(_fund);
-        currentTapVotingNumber = 0;
+    constructor(address _token, address _fund) public
+        only(_fund) {
+            token = ERC20(_token);
+            fund = Fund(_fund);
+            currentTapVotingNumber = 0;
     }
 
     event ReceiveIncentive(uint256 indexed vote_number, address indexed receiver, uint256 incentive_amount);
@@ -96,8 +93,8 @@ contract IncentivePool is Param {
     }
 
     //should make function on Fund.sol which calls this function
-    function setTapVotingAddr(address _tapvoting) external 
-        onlyFund
+    function setTapVotingAddr(address _tapvoting) public
+        only(fund)
         returns(bool) {
             require(_tapvoting != 0x0);
 
@@ -107,8 +104,8 @@ contract IncentivePool is Param {
             return true;
     }
 
-    function withdraw(uint256 withdraw_by_dev) external 
-        onlyFund
+    function withdraw(uint256 withdraw_by_dev) public
+        only(fund)
         returns (bool) {
             switch__withdraw[currentTapVotingNumber] = true;
             withdrawnByDev[currentTapVotingNumber] = withdraw_by_dev;

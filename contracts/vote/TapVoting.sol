@@ -44,24 +44,30 @@ contract TapVoting is BaseVoting {
     function getMinVotingPerc() view public
         returns(uint256) {
             //TODO: it is affected by the previous tap voting's participating rate.
-            return 20;
+            return 200;
     }
 
     /* Voting Period Function
      * order: initialize -> open -> close -> finalize
      */
     function initializeVote(uint256 term) public
+        period(VOTE_PERIOD.NONE)
+        available
         returns(bool) {
             require(term > MIN_TERM && MAX_TERM > term);
             super.initializeVote(term);
     }
 
     function openVote() public
+        period(VOTE_PERIOD.INITIALIZED)
+        available
         returns(bool) {
             super.openVote();
     }
 
     function closeVote() public
+        period(VOTE_PERIOD.OPENED)
+        available
         returns(bool) {
             super.closeVote();
     }
@@ -69,6 +75,8 @@ contract TapVoting is BaseVoting {
     function _snapshot() internal
         returns(bool){
             //FIXIT: how to reduce the snapshot operation gas fee?
+            //WARNING: it might exceed the block gas limit.
+            
             for(uint256 i = 0; i < party_list.length; i++) {
                 uint256 weight = isLockedGroup(party_list[i]) ? DEV_POWER : 1000; // percent
                 uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(1000);
@@ -84,12 +92,15 @@ contract TapVoting is BaseVoting {
     }
 
     function finalizeVote() public
+        period(VOTE_PERIOD.CLOSED)
+        available
         returns(bool) {
             // pass the vote if yes - no > 0
             require(mPeriod == VOTE_PERIOD.CLOSED);
             RESULT_STATE result = RESULT_STATE.NONE;
             
             if(!_snapshot()){revert("failed to snapshot in tap finalize.");}
+            
             if(getParticipatingPerc() < getMinVotingPerc()){revert("It cannot satisfy minimum voting rate.");}
             if(getAgreePower() > getDisagreePower()) {
                 result = RESULT_STATE.PASSED;
@@ -106,11 +117,14 @@ contract TapVoting is BaseVoting {
      * vote, getBack
      */
     function vote(bool agree) public
+        period(VOTE_PERIOD.OPENED)
+        available
         returns(bool) {
             return super.vote(agree);
     }
 
     function getBack() public 
+        period(VOTE_PERIOD.OPENED)
         available
         returns (bool) {
             return super.getBack();

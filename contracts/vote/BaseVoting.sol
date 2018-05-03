@@ -37,6 +37,8 @@ contract BaseVoting is Ownable, Param {
     uint256 public endTime;
     uint256 public agree_power = 0; // real value is divided by 100(weight)
     uint256 public disagree_power = 0;
+    uint256 public agree_count = 0;
+    uint256 public disagree_count = 0;
 
     mapping(address => vote_receipt) public party_dict;
     address[] public party_list;
@@ -107,6 +109,16 @@ contract BaseVoting is Ownable, Param {
     function getTotalParty() public view
         returns(uint256) {
             return agree_power.add(disagree_power);
+    }
+
+    function getAgreeCount() public view
+        returns(uint256) {
+            return agree_count;
+    }
+
+    function getDisagreeCount() public view
+        returns(uint256) {
+            return disagree_count;
     }
 
     function getDiscardTime() public view
@@ -208,9 +220,11 @@ contract BaseVoting is Ownable, Param {
             require(party_dict[msg.sender].state == VOTE_STATE.NONE); // can vote only once
             if(_agree) {
                 party_dict[msg.sender].state = VOTE_STATE.AGREE;
+                agree_count = agree_count.add(1);
             }
             else {
                 party_dict[msg.sender].state = VOTE_STATE.DISAGREE;
+                disagree_count = disagree_count.add(1);
             }
             return true;
     }
@@ -221,12 +235,17 @@ contract BaseVoting is Ownable, Param {
             require(isActivated());
             require(msg.sender != 0x0);
 
-            if(party_dict[msg.sender].state != VOTE_STATE.NONE) {
+            if(party_dict[msg.sender].state == VOTE_STATE.AGREE) {
                 party_dict[msg.sender].state = VOTE_STATE.NONE;
+                agree_count = agree_count.sub(1);
             }
+            else if(party_dict[msg.sender].state == VOTE_STATE.DISAGREE) {
+                party_dict[msg.sender].state = VOTE_STATE.NONE;
+                disagree_count = disagree_count.sub(1);
+            }
+            else { return false; }
             return true; 
     }
-
     
 }
 

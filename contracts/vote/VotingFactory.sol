@@ -71,6 +71,8 @@ contract VotingFactory is Ownable, Param {
         mVestingTokens = VestingTokens(_vestingTokensAddress);
         mFund.setVotingFactoryAddress(address(this));
     }
+    /* Fallback Function */
+    function () external {}
 
     function isVoteExist(address _votingAddress) view public
         returns(bool) {
