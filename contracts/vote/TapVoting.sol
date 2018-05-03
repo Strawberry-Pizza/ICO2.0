@@ -70,9 +70,10 @@ contract TapVoting is BaseVoting {
         returns(bool){
             //FIXIT: how to reduce the snapshot operation gas fee?
             for(uint256 i = 0; i < party_list.length; i++) {
-                uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 1000; // percent
+                uint256 weight = isLockedGroup(party_list[i]) ? DEV_POWER : 1000; // percent
                 uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(1000);
-                party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power 
+                party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power
+                party_dict[party_list[i]].group = isLockedGroup(party_list[i]) ? GROUP.LOCKED : GROUP.PUBLIC; 
                 if(party_dict[party_list[i]].state == VOTE_STATE.AGREE) {
                     agree_power = agree_power.add(vote_power);
                 } else if(party_dict[party_list[i]].state == VOTE_STATE.DISAGREE) {

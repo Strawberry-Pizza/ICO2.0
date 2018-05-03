@@ -14,9 +14,11 @@ contract BaseVoting is Ownable, Param {
     enum VOTE_PERIOD {NONE, INITIALIZED, OPENED, CLOSED, FINALIZED, DISCARDED}
     enum VOTE_STATE {NONE, AGREE, DISAGREE}
     enum RESULT_STATE {NONE, PASSED, REJECTED}
+    enum GROUP {PUBLIC, LOCKED}
 
     struct vote_receipt {
         VOTE_STATE state;
+        GROUP group;
         uint256 power;
         bool isReceivedIncentive;
     }
@@ -38,14 +40,12 @@ contract BaseVoting is Ownable, Param {
 
     mapping(address => vote_receipt) public party_dict;
     address[] public party_list;
+    address[] public public_party_list; //withhold
+    address[] public locked_party_list; //withhold
       
-    bool public isAvailable = true; //
+    bool public isAvailable = true;
     uint256 public discardTime;
     
-    /* comment by @JChoy
-        why do we need revoke_list and index_party_list?
-        at Issue #4
-    */
     /* Events */
     event InitializeVote(address indexed vote_account, string indexed voting_name, uint256 startTime, uint256 endTime);
     event OpenVote(address indexed opener, uint256 open_time);

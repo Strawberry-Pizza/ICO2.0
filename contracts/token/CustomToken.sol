@@ -14,4 +14,9 @@ contract CustomToken is BaseToken{
         balances[msg.sender] = totalSupply_;
         emit Transfer(0x0, msg.sender, totalSupply_);
     }
+
+    function publicSupply() public view
+        returns(uint256) {
+           //TODO 
+        }
 }
