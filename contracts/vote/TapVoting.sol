@@ -4,12 +4,7 @@ import "./BaseVoting.sol";
 import "../fund/Fund.sol";
 
 contract TapVoting is BaseVoting {
-    /* Global Variables */
-    uint256 public constant MIN_TERM = 7 days; // should be changed
-    uint256 public constant MAX_TERM = 2 weeks; // should be changed
-    uint256 public constant DEV_POWER = 70; // percent
-    uint256 public constant DEV_PERC = 14; // percent
-    uint256 public constant PUBLIC_TOKEN_PERC = 65; //FIXIT: it should be changed in every tap voting term and it is NOT constant, it means totalSupply() - locked_token - reserve_token
+    
     /* Constructor */
     constructor(
         string _votingName,
@@ -23,8 +18,8 @@ contract TapVoting is BaseVoting {
     function getTotalPower() view public
         returns(uint256) {
             // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
-            uint256 ret1 = mToken.totalSupply().mul(uint256(100).sub(DEV_PERC)).mul(100);
-            uint256 ret2 = mToken.totalSupply().mul(DEV_PERC).mul(DEV_POWER);
+            uint256 ret1 = mToken.totalSupply().mul(uint256(1000).sub(DEV_TOKEN_PERC)).mul(1000);
+            uint256 ret2 = mToken.totalSupply().mul(DEV_TOKEN_PERC).mul(DEV_POWER);
             return ret1.add(ret2);
     }
     function getAgreePower() view public
@@ -42,9 +37,9 @@ contract TapVoting is BaseVoting {
     }
     function getParticipatingPerc() view public 
         returns(uint256) {
-            uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(100);
+            uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(1000);
             uint256 participating_token = getAgreePower().add(getDisagreePower());
-            return participating_token.mul(100).div(total_token);
+            return participating_token.mul(1000).div(total_token);
     }
     function getMinVotingPerc() view public
         returns(uint256) {
@@ -75,8 +70,8 @@ contract TapVoting is BaseVoting {
         returns(bool){
             //FIXIT: how to reduce the snapshot operation gas fee?
             for(uint256 i = 0; i < party_list.length; i++) {
-                uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 100; // percent
-                uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(100);
+                uint256 weight = isDeveloper(party_list[i]) ? DEV_POWER : 1000; // percent
+                uint256 vote_power = mToken.balanceOf(party_list[i]).mul(weight).div(1000);
                 party_dict[party_list[i]].power = vote_power; //snapshot each account's vote power 
                 if(party_dict[party_list[i]].state == VOTE_STATE.AGREE) {
                     agree_power = agree_power.add(vote_power);

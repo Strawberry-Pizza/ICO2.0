@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-contract Members{
+contract Members {
     enum DEV_LEVEL {NONE, DEV, OWNER}
 
     address owner_;

@@ -1,10 +1,11 @@
 pragma solidity ^0.4.23;
 
 import "../lib/SafeMath.sol";
+import "../lib/Param.sol";
 import "../ownership/Ownable.sol";
 import "./IERC20.sol";
 
-contract ERC20 is IERC20 {
+contract ERC20 is IERC20, Param {
     /* Library */
     using SafeMath for uint256;
     /* Global Variables */
@@ -18,18 +19,14 @@ contract ERC20 is IERC20 {
 	 address public owner;
 
     /* Constructor */
-    constructor(
-        uint256 initialSupply,
-        uint8 _decimals,
-        string _name,
-        string _symbol
-        ) public {
-        totalSupply_ = initialSupply; // Update total supply
-        decimals = _decimals;     // Amount of decimals for display purposes
-        name = _name;    // Set the name for display purposes
-        symbol = _symbol;  // Set the symbol for display purposes
-        owner = msg.sender;
-        balances[owner] = totalSupply_; //set initial owner
+    constructor()
+        public {
+            totalSupply_ = INITIAL_SUPPLY; // Update total supply
+            decimals = DECIMALS;     // Amount of decimals for display purposes
+            name = TOKEN_NAME;    // Set the name for display purposes
+            symbol = TOKEN_SYMBOL;  // Set the symbol for display purposes
+            owner = msg.sender;
+            balances[owner] = totalSupply_; //set initial owner
     }
 
     //we can view public variables without view function

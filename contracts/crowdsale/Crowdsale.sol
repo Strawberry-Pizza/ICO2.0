@@ -3,6 +3,7 @@ pragma solidity ^0.4.23;
 import "../token/CustomToken.sol";
 import "../fund/Fund.sol";
 import "../lib/SafeMath.sol";
+import "../lib/Param.sol";
 import "../ownership/Ownable.sol";
 import "../token/VestingTokens.sol";
 import "./ICrowdsale.sol";
@@ -16,38 +17,10 @@ import "./ICrowdsale.sol";
  * minted as contributions arrive, note that the crowdsale contract
  * must be owner of the token in order to be able to mint it.
  */
-contract Crowdsale is Ownable, ICrowdsale{
+contract Crowdsale is Ownable, ICrowdsale, Param {
     /* Library and Typedefs */
     using SafeMath for uint256;
     enum STATE {PREPARE, ACTIVE, FINISHED, FINALIZED}
-
-
-
-    /* Constants */
-    uint public constant HARD_CAP = 37500 ether;
-    uint public constant MIN_CONTRIB = 5000 ether;
-
-    //percentage of tokens total : 1000%
-    uint public constant PUB_TOKEN_PERC = 200;
-    uint public constant PRIV_TOKEN_PERC = 200;
-    uint public constant DEV_TOKEN_PERC = 140;
-    uint public constant ADV_TOKEN_PERC = 50;
-    uint public constant RESERVE_TOKEN_PERC = 200;
-    uint public constant REWARD_TOKEN_PERC = 200;
-    uint public constant INCENTIVE_TOKEN_PERC = 10;
-
-    //limitation of public participants
-    uint public constant ETHER_MIN_CONTRIB = 1 ether;
-    uint public constant ETHER_MAX_CONTRIB = 300 ether;
-
-    //crowd sale time
-    uint public constant SALE_START_TIME = 0;
-    uint public constant SALE_END_TIME = 0;
-
-    // how many token units a buyer gets per wei
-    uint public constant DEFAULT_RATE = 50*10**5; //this is ether/token or wei/tokenWei
-
-
 
     /* Global Variables */
     CustomToken public mToken; //address

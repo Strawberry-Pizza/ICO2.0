@@ -4,10 +4,7 @@ import "./BaseVoting.sol";
 
 contract RefundVoting is BaseVoting {
 
-    uint256 public constant REFRESH_TERM = 4 weeks; //should be changed
-
     event DiscardRefundVoting(uint256 indexed time);
-
 
     constructor(
         string _votingName,

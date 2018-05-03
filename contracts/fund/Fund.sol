@@ -15,8 +15,9 @@ import "../vote/VotingFactory.sol";
 import "../vote/TapVoting.sol";
 import "../vote/RefundVoting.sol";
 import "../lib/SafeMath.sol";
+import "../lib/Param.sol";
 
-contract Fund is Ownable {
+contract Fund is Ownable, Param {
     /* Library and Typedefs */
     using SafeMath for uint256;
     enum FUNDSTATE {
@@ -28,8 +29,6 @@ contract Fund is Ownable {
     }
 
     /* Global Variables */
-    uint256 public constant INITIAL_TAP = 0.01 ether; //(0.01 ether/sec)
-    uint256 public constant DEV_VESTING_PERIOD = 1 years;
     // totalEther = [contract_account].balance
     FUNDSTATE public state;
     ERC20 public token;

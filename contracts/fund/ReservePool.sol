@@ -5,8 +5,9 @@ import "../token/ERC20.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../vote/TapVoting.sol";
 import "../lib/SafeMath.sol";
+import "../lib/Param.sol";
 
-contract ReservePool {
+contract ReservePool is Param {
     using SafeMath for uint256;
 
     ERC20 public token;

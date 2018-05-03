@@ -5,12 +5,11 @@ import "../token/ERC20.sol";
 import "../vote/TapVoting.sol";
 import "../crowdsale/Crowdsale.sol";
 import "../lib/SafeMath.sol";
+import "../lib/Param.sol";
 
-contract IncentivePool {
+contract IncentivePool is Param {
     using SafeMath for uint256;
 
-    uint256 public constant MIN_RECEIVABLE_TOKEN = 100; // minimum token holdings
-    uint256 public constant ICO_CAP = 37500 ether; // FIXIT: derived from crowdsale but it is overhead for just retrieving this constant
     ERC20 public token;
     Fund private fund;
     TapVoting public tapvoting;
@@ -45,7 +44,7 @@ contract IncentivePool {
         (,my_stake,) = tapvoting.readPartyDict(account); //power
         uint256 total_stake = tapvoting.getTotalPower();
         uint256 total_incentive = withdrawnByDev[currentTapVotingNumber].div(100); // FIXIT: 1%, but the withdrawn currency by dev is ETH and incentivised currency is Token
-        uint256 ret = total_incentive.mul(withdrawnByDev[currentTapVotingNumber]).mul(my_stake).div(ICO_CAP).div(total_stake);
+        uint256 ret = total_incentive.mul(withdrawnByDev[currentTapVotingNumber]).mul(my_stake).div(HARD_CAP).div(total_stake);
         return ret;
     }
     function getPrevIncentiveAmountPerOne(uint256 _votingNumber, address account) public view returns(uint256) {
@@ -56,7 +55,7 @@ contract IncentivePool {
         (,my_stake,) = prevTapVotingList[_votingNumber].readPartyDict(account);
         uint256 total_stake = prevTapVotingList[_votingNumber].getTotalPower();
         uint256 total_incentive = withdrawnByDev[_votingNumber].div(100); // FIXIT: 1%, but the withdrawn currency by dev is ETH and incentivised currency is Token
-        uint256 ret = total_incentive.mul(withdrawnByDev[_votingNumber]).mul(my_stake).div(ICO_CAP).div(total_stake);
+        uint256 ret = total_incentive.mul(withdrawnByDev[_votingNumber]).mul(my_stake).div(HARD_CAP).div(total_stake);
         return ret;
 
     }

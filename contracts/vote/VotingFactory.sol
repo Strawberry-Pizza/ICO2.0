@@ -12,8 +12,9 @@ import "../ownership/Ownable.sol";
 import "../ownership/Members.sol";
 import "../token/VestingTokens.sol";
 import "../lib/SafeMath.sol";
+import "../lib/Param.sol";
 
-contract VotingFactory is Ownable {
+contract VotingFactory is Ownable, Param {
 
     /* Typedefs */
     enum VOTE_TYPE {NONE, REFUND, TAP}
@@ -22,7 +23,6 @@ contract VotingFactory is Ownable {
         uint256 round;
         bool isExist;
     }
-    uint256 public constant REFRESH_TERM = 4 weeks;
 
     /* Global Variables */
     IERC20 public mToken;
