@@ -19,13 +19,16 @@ import "./ICrowdsale.sol";
 contract Crowdsale is Ownable, ICrowdsale{
     /* Library and Typedefs */
     using SafeMath for uint256;
-    enum STATE {PREPARE, ACTIVE, FINISHED, FINALIZED}
-
+    enum STATE {PREPARE, ACTIVE, FINISHED, FINALIZED, REFUND}
+    struct Purchase{
+        uint amount;
+        uint tokens;
+    }
 
 
     /* Constants */
     uint public constant HARD_CAP = 37500 ether;
-    uint public constant MIN_CONTRIB = 5000 ether;
+    uint public constant SOFT_CAP = 5000 ether;
 
     //percentage of tokens total : 1000%
     uint public constant PUB_TOKEN_PERC = 200;
@@ -63,17 +66,15 @@ contract Crowdsale is Ownable, ICrowdsale{
     mapping(address => uint) public mPrivateSale;
     mapping(address => uint) public mDevelopers;
     mapping(address => uint) public mAdvisors;
-    mapping(address => uint) public mUserContributed;
+    mapping(address => Purchase) public mContributors;
     address[] public mPrivateSaleIndex;
     address[] public mDevelopersIndex;
     address[] public mAdvisorsIndex;
-    address[] public mUserContributedIndex;
 
 
 
     /* Events */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 wei_amount, uint256 token_amount, bool success);
-    event StoreEtherToWallet(address indexed purchaser, address indexed wallet_address, uint256 wei_amount, uint256 token_amount, bool success);
+    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 wei_amount, uint256 token_amount);
     event EtherChanges(address indexed purchaser, uint value); // send back ETH changes
     event StateChanged(string state, uint time);
 
@@ -117,6 +118,8 @@ contract Crowdsale is Ownable, ICrowdsale{
             return "FINISHED";
         } else if(mCurrentState == STATE.FINALIZED){
             return "FINALIZED";
+        } else if(mCurrentState == STATE.REFUND){
+            return "REFUND";
         } else
             return "SOMETHING WORNG";
     }
@@ -206,24 +209,20 @@ contract Crowdsale is Ownable, ICrowdsale{
         mFund.startSale(); // tell crowdsale started
         emit StateChanged("ACTIVE", now);
     }
-    function _finishSale() private period(STATE.ACTIVE){
-        mCurrentState = STATE.FINISHED;
-        emit StateChanged("FINISHED", now);
+    function finishSale() public onlyOwner period(STATE.ACTIVE){
+        require(now >= SALE_END_TIME);
+        require(address(this).balance > SOFT_CAP);
+        _finish();
     }
     function finalizeSale() public onlyOwner period(STATE.FINISHED) {
-        //lock up tokens
-        require(isLockFilled());
-        _lockup();
-        //finalize funds
-        //give initial fund
-        _forwardFunds();
-        mFund.finalizeSale();
-        _dividePool();
-        //Refund vote activate
-        //set tapVoting available
-        //change state
+        _finalize();
         mCurrentState = STATE.FINALIZED;
         emit StateChanged("FINALIZED", now);
+    }
+    function activeRefund() public period(STATE.ACTIVE){
+        require(now > SALE_END_TIME);
+        require(address(this).balance < SOFT_CAP);
+        mCurrentState = STATE.REFUND;
     }
 
 
@@ -238,15 +237,15 @@ contract Crowdsale is Ownable, ICrowdsale{
     /* Token Purchase Function */
     function buyTokens(address _beneficiary) public payable period(STATE.ACTIVE) {
         require(_beneficiary != address(0));
+        require(msg.value > 0);
+        require(now > START_TIME && now < END_TIME);
 
         uint weiAmount = msg.value;
         // calculate token amount to be created
         uint tokens;
-        bool send_token_success;
         if(!isOver(weiAmount)){ //check if estimate ether exceeds next cap
             tokens = getTokenAmount(weiAmount);
-            send_token_success = mToken.transfer(_beneficiary, tokens);
-            emit TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens, send_token_success);
+            emit TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
         } else{
             //when estimate ether exceeds next cap
             //we divide input ether by next cap
@@ -257,13 +256,11 @@ contract Crowdsale is Ownable, ICrowdsale{
                 ether2 = address(this).balance.add(weiAmount).sub(getNextCap()); //(balance + weiAmount) - NEXT_CAP
                 ether1 = weiAmount.sub(ether2);
                 tokens = getTokenAmount(ether1);
-                send_token_success = mToken.transfer(_beneficiary, tokens);
-                emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens, send_token_success);
+                emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens);
 
                 mCurrentDiscountPerc = mCurrentDiscountPerc.sub(5); // Update discount percentage
                 uint additionalTokens = getTokenAmount(ether2);
-                send_token_success = mToken.transfer(_beneficiary, additionalTokens);
-                emit TokenPurchase(msg.sender, _beneficiary, ether2, additionalTokens, send_token_success);
+                emit TokenPurchase(msg.sender, _beneficiary, ether2, additionalTokens);
                 tokens = tokens.add(additionalTokens);
             } else if(mCurrentDiscountPerc == 0){
                 // Do when CrowdSale Ended
@@ -271,13 +268,12 @@ contract Crowdsale is Ownable, ICrowdsale{
                 ether1 = weiAmount.sub(ether2);
                 tokens = getTokenAmount(ether1);
 
-                send_token_success = mToken.transfer(_beneficiary, tokens);
-                emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens, send_token_success);
+                emit TokenPurchase(msg.sender, _beneficiary, ether1, tokens);
                 msg.sender.transfer(ether2); //pay back
                 emit EtherChanges(msg.sender, ether2);
                 //add to map
-                _addToUserContributed(_beneficiary, tokens);
-                _finishSale();
+                _addToUserContributed(_beneficiary, ether1, tokens);
+                _finish();
                 //finalize CrowdSale
                 return;
             } else{
@@ -285,15 +281,27 @@ contract Crowdsale is Ownable, ICrowdsale{
             }
         }
         //add to map
-        _addToUserContributed(_beneficiary, tokens);
+        _addToUserContributed(_beneficiary, weiAmount, tokens);
     }
-    function _addToUserContributed(address _address, uint _additionalAmount) private period(STATE.ACTIVE){
-        if(mUserContributed[_address] > 0){
-            mUserContributed[_address] = mUserContributed[_address].add(_additionalAmount);
+    function _addToUserContributed(address _address, uint _amount, uint _additionalAmount) private period(STATE.ACTIVE){
+        if(mContributors[_address].tokens > 0){
+            mContributors[_address].tokens = mContributors[_address].tokens.add(_additionalAmount);
+            mContributors[_address].amount = mContributors[_address].amount.add(_amount);
         } else{
-            mUserContributed[_address] = _additionalAmount;
-            mUserContributedIndex.push(_address);
+            mContributors[_address].tokens = _additionalAmount;
+            mContributors[_address].amount = _amount;
         }
+    }
+    function receiveTokens() public period(STATE.FINALIZE){
+        require(mContributors[msg.sender].tokens > 0);
+        mToken.transfer(msg.sender, mContributors[msg.sender].tokens);
+        delete mContributors[msg.sender];
+    }
+
+    function refund() public period(STATE.REFUND){
+        require(mContributors[msg.sender].amount > 0);
+        msg.sender.transfer(mContributors[msg.sender].amount);
+        delete mContributors[msg.sender];
     }
     
 
@@ -346,6 +354,24 @@ contract Crowdsale is Ownable, ICrowdsale{
 
 
     /* Finalizing Functions */
+    function _finish() private period(STATE.ACTIVE){
+        mCurrentState = STATE.FINISHED;
+        emit StateChanged("FINISHED", now);
+    }
+    function _finalize() private {
+        //lock up tokens
+        require(isLockFilled());
+        _lockup();
+        //finalize funds
+        //give initial fund
+        _forwardFunds();
+        mFund.finalizeSale();
+        _dividePool();
+        //Refund vote activate
+        //set tapVoting available
+        //change state
+    }
+
     function _lockup() private {
         //lock tokens
         uint i = 0;

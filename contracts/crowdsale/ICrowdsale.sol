@@ -22,11 +22,15 @@ contract ICrowdsale{
 
     /* Change CrowdSale State, call only once */
     function activateSale() public;
-    function _finishSale() private;
+    function finishSale() public;
     function finalizeSale() public;
+    function activeRefund() public;
 
     /* Token Purchase Functions */
     function buyTokens(address _beneficiary) public payable;
+    function _addToUserContributed(address _address, uint _amount, uint _additionalAmount) private;
+    function receiveTokens() public;
+    function refund() public;
     
     /* Set Functions */
     function setVestingTokens(address _vestingTokensAddress) public;
@@ -37,6 +41,8 @@ contract ICrowdsale{
     //function addToUserContributed
 
     /* Finalizing Functions */
+    function _finish() private;
+    function _finalize() private;
     function _lockup() private;
     function _forwardFunds() private returns (bool);
     function _dividePool() internal;
