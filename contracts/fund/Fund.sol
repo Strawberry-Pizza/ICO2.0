@@ -217,7 +217,7 @@ contract Fund is Ownable, Param {
         returns(bool) {
             state = FUNDSTATE.LOCKED;
             switch__lock_fund = true;
-            if(!vestingTokens.lock(true)) { revert(); }
+            if(!vestingTokens.lock()) { revert(); }
             emit ChangeFundState(now, state);
             return true;
     }

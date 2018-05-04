@@ -14,38 +14,6 @@ contract TapVoting is BaseVoting {
         address _membersAddress
         ) BaseVoting(_votingName, _tokenAddress, _fundAddress, _vestingTokens, _membersAddress) public {
     }
-    /* View Function */
-    function getTotalPower() view public
-        returns(uint256) {
-            // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
-            uint256 ret1 = mToken.totalSupply().mul(uint256(1000).sub(DEV_TOKEN_PERC)).mul(1000);
-            uint256 ret2 = mToken.totalSupply().mul(DEV_TOKEN_PERC).mul(DEV_POWER);
-            return ret1.add(ret2);
-    }
-    function getAgreePower() view public
-        returns(uint256) {
-            return agree_power;
-    }
-    function getDisagreePower() view public 
-        returns(uint256) {
-            return disagree_power;
-    }
-    function getAbsentPower() view public 
-        returns(uint256) {
-            uint256 voted_power = agree_power.add(disagree_power);
-            return getTotalPower().sub(voted_power);
-    }
-    function getParticipatingPerc() view public 
-        returns(uint256) {
-            uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(1000);
-            uint256 participating_token = getAgreePower().add(getDisagreePower());
-            return participating_token.mul(1000).div(total_token);
-    }
-    function getMinVotingPerc() view public
-        returns(uint256) {
-            //TODO: it is affected by the previous tap voting's participating rate.
-            return 200;
-    }
 
     /* Voting Period Function
      * order: initialize -> open -> close -> finalize
@@ -71,7 +39,7 @@ contract TapVoting is BaseVoting {
         returns(bool) {
             super.closeVote();
     }
-
+    //TODO: should we move on to BaesVoting?
     function _snapshot() internal
         returns(bool){
             //FIXIT: how to reduce the snapshot operation gas fee?
@@ -90,7 +58,7 @@ contract TapVoting is BaseVoting {
             }
             return true;
     }
-
+    //TODO: should we move on to BaseVoting?
     function finalizeVote() public
         period(VOTE_PERIOD.CLOSED)
         available

@@ -52,8 +52,12 @@ contract RefundVoting is BaseVoting {
     function finalizeVote() public
         period(VOTE_PERIOD.CLOSED) 
         available
-        returns (bool) {
-            return super.finalizeVote();
+        returns (bool) { 
+        //TODO: finalize the refund voting. call lockFund() if refund has approved
+        RESULT_STATE result = RESULT_STATE.NONE;
+
+
+        emit FinalizeVote(msg.sender, now);    
     }
     
     function discard() public

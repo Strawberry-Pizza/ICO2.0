@@ -1,8 +1,12 @@
 /* All constants used in other contracts are defined here.
 */
 pragma solidity ^0.4.23;
+import "../lib/SafeMath.sol";
+import "../lib/Sqrt.sol";
 
 contract Param {
+    using SafeMath for uint256;
+    using Sqrt for uint256;
     /* Token */
         uint8 public constant DECIMALS = 18;
         uint public constant INITIAL_SUPPLY = 100 * (1000 ** 3) * (10 ** uint256(DECIMALS));
@@ -57,4 +61,21 @@ contract Param {
         uint256 public constant PUBLIC_TOKEN_PERC = 65; //FIXIT: it should be changed in every tap voting term and it is NOT constant, it means totalSupply() - locked_token - reserve_token
         uint256 public constant REFRESH_TERM = 4 weeks; // refresh term of refund voting
         uint256 public constant MIN_VOTABLE_TOKEN_PER = 1; // 0.01% (max: 10000)
+        //IMPORTANT: need reviewing
+        function MIN_VOTE_PERCENT(
+            uint256 P_S,
+            uint256 p_M,
+            uint256 p_m,
+            uint256 N_M,
+            uint256 N_m) internal pure
+            returns(uint256 X) {
+                //TODO: X ~ N(m, variance) => X-m/std ~ N(0, 1)
+                uint256 m = (P_S.mul(p_M).add((100.sub(P_S)).mul(p_m))).div(10000); 
+                uint256 variance = P_S.mul(P_S).mul(p_M).mul(100.sub(p_M)).div(N_M);
+                variance = variance.add( (100.sub(P_S)).mul(100.sub(P_S)).mul(p_m).mul(100.sub(p_m)).div(N_m) );
+                uint256 std = sqrt(variance.div(100000000));
+                //If you wanna the voting rate 80%, P(Z>= -0.842) = 0.8
+                X = m.sub(std.mul(842).div(1000));
+                return X;
+        }
 }

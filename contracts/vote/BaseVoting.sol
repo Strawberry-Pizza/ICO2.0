@@ -100,15 +100,56 @@ contract BaseVoting is Ownable, Param {
         returns(bool) {
             return (mPeriod == VOTE_PERIOD.OPENED);
     }
-    //function getInfo() public view returns(string); //TODO
+    
     function getName() public view
         returns(string) {
             return mVotingName;
     }
+    // getPublicPerc = p (the percent of developers' token)
+    function getPublicPerc() view public
+        returns(uint256) {
+            return mToken.publicSupply().mul(1000).div(mToken.totalSupply());
+    }
     
-    function getTotalParty() public view
+    function getParticipatingPerc() view public 
+        returns(uint256) {
+            uint256 total_token = mToken.totalSupply().mul(PUBLIC_TOKEN_PERC).div(1000);
+            return getParticipantPower().mul(1000).div(total_token);
+    }
+
+    function getMinVotingPerc() view public
+        returns(uint256) {
+            //TODO: it is affected by the previous tap voting's participating rate.
+            //IMPORTANT
+            return 200;
+    }
+    
+    function getTotalPower() view public
+        returns(uint256) {
+            // totalSupply(1-p) + totalSupply*p*DEV_POWER, p is dev ratio
+            uint256 ret1 = mToken.totalSupply().mul(uint256(1000).sub(getPublicPerc())).div(1000);
+            uint256 ret2 = mToken.totalSupply().mul(getPublicPerc()).mul(DEV_POWER).div(1000);
+            return ret1.add(ret2);
+    }
+    
+    function getAgreePower() view public
+        returns(uint256) {
+            return agree_power;
+    }
+   
+    function getDisagreePower() view public 
+        returns(uint256) {
+            return disagree_power;
+    }
+    
+    function getParticipantPower() public view
         returns(uint256) {
             return agree_power.add(disagree_power);
+    }
+    
+    function getAbsentPower() view public 
+        returns(uint256) {
+            return getTotalPower().sub(getParticipantPower());
     }
 
     function getAgreeCount() public view
@@ -182,13 +223,12 @@ contract BaseVoting is Ownable, Param {
             return true;
     }
     //TODO: specify the condition of finality
+    //should be overrided
     function finalizeVote() public
         period(VOTE_PERIOD.CLOSED)
         available 
         returns(bool) { 
-        //TODO
-            emit FinalizeVote(msg.sender, now);
-            return true; 
+            return false; 
     }
     
     function discard() public

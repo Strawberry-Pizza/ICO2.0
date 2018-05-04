@@ -90,5 +90,5 @@ contract LockedTokens is Param {
             
             workable = false;
             return true;
-        }
+    }
 }
