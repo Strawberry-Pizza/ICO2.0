@@ -1,2 +1,3 @@
 # ICO2.0
-Implementation of current daico design
+
+This repository has moved to [https://github.com/decipherhub/ICO2.0](https://github.com/decipherhub/ICO2.0).
